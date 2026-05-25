@@ -247,6 +247,9 @@ const DOM = {
   startAbout: document.getElementById("start-about"),
   aboutDialog: document.getElementById("about-dialog"),
   btnModalCloses: document.querySelectorAll(".btn-modal-close"),
+  exportDialog: document.getElementById("export-dialog"),
+  exportPreviewImg: document.getElementById("export-preview-img"),
+  btnExportCloses: document.querySelectorAll(".btn-export-close"),
   taskAppTab: document.getElementById("task-app-tab"),
   trayTime: document.getElementById("tray-time"),
   traySoundIcon: document.getElementById("tray-sound-icon"),
@@ -426,6 +429,13 @@ function setupStartMenu() {
     btn.addEventListener("click", () => {
       SoundFX.playClick();
       DOM.aboutDialog.classList.add("hidden");
+    });
+  });
+
+  DOM.btnExportCloses.forEach(btn => {
+    btn.addEventListener("click", () => {
+      SoundFX.playClick();
+      DOM.exportDialog.classList.add("hidden");
     });
   });
 }
@@ -1293,10 +1303,14 @@ function downloadResultImage() {
   // Trigger file download
   const link = document.createElement("a");
   link.download = `pic2pc3104_${Date.now()}.png`;
-  link.href = upscaleCanvas.toDataURL("image/png");
+  const dataUrl = upscaleCanvas.toDataURL("image/png");
+  link.href = dataUrl;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  
+  // Show preview dialog for iOS long-press saving
+  showExportPreview(dataUrl);
   
   updateStatus("画像の保存に成功しました！");
 }
@@ -1936,10 +1950,14 @@ function downloadADGImage() {
   
   const link = document.createElement("a");
   link.download = `pc3104_adg_${Date.now()}.png`;
-  link.href = upscaleCanvas.toDataURL("image/png");
+  const dataUrl = upscaleCanvas.toDataURL("image/png");
+  link.href = dataUrl;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  
+  // Show preview dialog for iOS long-press saving
+  showExportPreview(dataUrl);
   
   DOM.adgStatusText.textContent = "アドベンチャー画像の保存に成功しました！";
 }
@@ -1993,7 +2011,7 @@ function compileADGGif() {
     interval: 0.045, // 45ms per frame matching typewriter delay
     numFrames: State.adgGifFrames.length,
     sampleInterval: 10,
-    numWorkers: 2
+    numWorkers: 0
   }, function(obj) {
     if (!obj.error) {
       const link = document.createElement("a");
@@ -2002,6 +2020,9 @@ function compileADGGif() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Show preview dialog for iOS long-press saving
+      showExportPreview(obj.image);
       
       DOM.adgStatusText.textContent = "GIFアニメの保存に成功しました！";
       SoundFX.playRenderChime();
@@ -2015,4 +2036,11 @@ function compileADGGif() {
     State.adgGifFrames = [];
     enableADGButtons(true);
   });
+}
+
+function showExportPreview(src) {
+  if (DOM.exportPreviewImg && DOM.exportDialog) {
+    DOM.exportPreviewImg.src = src;
+    DOM.exportDialog.classList.remove("hidden");
+  }
 }
