@@ -1029,6 +1029,12 @@ input[type="radio"], input[type="checkbox"] {
 .icon-info {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='%2308c'/><text x='6' y='12' fill='%23fff' font-weight='bold' font-size='12'>i</text></svg>");
 }
+.icon-pixel-studio {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='6' width='28' height='18' fill='%23e0e0e0' stroke='%23000' stroke-width='2'/><rect x='4' y='8' width='24' height='12' fill='%23000'/><rect x='6' y='24' width='20' height='3' fill='%23808080' stroke='%23000' stroke-width='2'/><path d='M10 27 L22 27 L24 29 L8 29 Z' fill='%23a0a0a0' stroke='%23000' stroke-width='2'/><rect x='8' y='12' width='16' height='4' fill='%2300ff00' opacity='0.7'/></svg>");
+}
+.icon-adg-maker {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='4' width='24' height='18' fill='%23ffffff' stroke='%23000' stroke-width='2'/><polygon points='8,22 8,28 14,22' fill='%23ffffff' stroke='%23000' stroke-width='2'/><line x1='8' y1='21' x2='12' y2='21' stroke='%23ffffff' stroke-width='3'/><rect x='8' y='8' width='12' height='2' fill='%2300f'/><rect x='8' y='12' width='16' height='2' fill='%2300f'/></svg>");
+}
 
 /* ==========================================================================
    Modals & Popups
@@ -1128,7 +1134,34 @@ input[type="radio"], input[type="checkbox"] {
   }
   
   .desktop-icon {
-    display: none; /* Hide desktop shortcuts to maximize workspace on mobile */
+    width: 65px;
+    height: 65px;
+  }
+  
+  .desktop-icon .icon-image {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .desktop-icon .icon-label {
+    font-size: 10px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 60px;
+    white-space: nowrap;
+  }
+  
+  #icon-pc98 { left: 10px; top: 10px; }
+  #icon-mycomputer { left: 10px; top: 85px; }
+  #icon-recycle { left: 10px; top: 160px; }
+  #icon-adgmaker { left: 10px; top: 235px; }
+
+  .taskbar-window-tab {
+    width: auto;
+    max-width: 100px;
+    font-size: 9px;
+    padding: 0 4px;
+    gap: 3px;
   }
   
   .window {

@@ -240,6 +240,8 @@ const DOM = {
   btnClose: document.getElementById("btn-close"),
   btnStart: document.getElementById("btn-start"),
   startMenuBox: document.getElementById("start-menu-box"),
+  startProgramPixel: document.getElementById("start-program-pixel"),
+  startProgramAdg: document.getElementById("start-program-adg"),
   startResetApp: document.getElementById("start-reset-app"),
   startSoundToggle: document.getElementById("start-sound-toggle"),
   startAbout: document.getElementById("start-about"),
@@ -1722,6 +1724,24 @@ function setupADGMaker() {
 
   DOM.appWindow.addEventListener("mousedown", focusApp);
   DOM.adgWindow.addEventListener("mousedown", focusAdg);
+
+  // Start Menu Programs launch
+  DOM.startProgramPixel.addEventListener("click", () => {
+    SoundFX.playClick();
+    DOM.startMenuBox.classList.add("hidden");
+    DOM.appWindow.classList.remove("minimized");
+    DOM.appWindow.classList.remove("hidden");
+    focusApp();
+  });
+
+  DOM.startProgramAdg.addEventListener("click", () => {
+    SoundFX.playClick();
+    DOM.startMenuBox.classList.add("hidden");
+    DOM.adgWindow.classList.remove("hidden");
+    DOM.adgWindow.classList.remove("minimized");
+    DOM.taskAdgTab.classList.remove("hidden");
+    focusAdg();
+  });
 
   // App Shortcut Icon setup
   DOM.iconAdgMaker.addEventListener("click", () => {

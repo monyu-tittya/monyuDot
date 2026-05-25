@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,20 +8,22 @@
   <!-- Google Fonts: DotGothic16 & VT323 for high fidelity pixel feel -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <!-- Retro Teal Desktop Environment -->
   <div id="desktop">
-    
+
     <!-- Desktop Icons -->
     <div class="desktop-icon" id="icon-pc98" role="button" tabindex="0">
       <div class="icon-image pc98-icon-art"></div>
       <div class="icon-label">PC-3104 Studio</div>
     </div>
-    
+
     <div class="desktop-icon" id="icon-mycomputer" role="button" tabindex="0">
       <div class="icon-image mycomputer-icon-art"></div>
       <div class="icon-label">マイ コンピュータ</div>
@@ -76,7 +79,7 @@
 
       <!-- Main Window Body -->
       <div class="window-body">
-        
+
         <!-- Top Portion: Image Preview & Work Area -->
         <div class="workspace-section">
           <!-- Preview Frame -->
@@ -85,7 +88,7 @@
             <canvas id="crop-canvas" class="hidden"></canvas>
             <!-- Canvas for retro display -->
             <canvas id="output-canvas"></canvas>
-            
+
             <!-- Upload Placeholder Screen -->
             <div id="upload-placeholder" class="placeholder-screen">
               <div class="retro-display-logo">PC-3104</div>
@@ -95,11 +98,13 @@
               </label>
               <input type="file" id="image-input" accept="image/*" class="hidden">
             </div>
-            
+
             <!-- Loading Indicator -->
             <div id="loading-overlay" class="hidden">
               <div class="loading-box window">
-                <div class="title-bar"><div class="title-bar-text">処理中...</div></div>
+                <div class="title-bar">
+                  <div class="title-bar-text">処理中...</div>
+                </div>
                 <div class="window-body text-center">
                   <div class="spinner"></div>
                   <div style="margin-top: 10px;">画像をレンダリングしています...</div>
@@ -118,13 +123,13 @@
           </ul>
 
           <div class="tab-content inset-bevel">
-            
+
             <!-- Tab 1: Crop and Source Alignment -->
             <div id="tab-crop" class="tab-pane active">
               <div class="control-group">
                 <label class="group-title">クロップ設定</label>
                 <div class="help-desc">プレビュー画面上でドラッグ（スワイプ）して位置を調整できます。</div>
-                
+
                 <div class="control-row">
                   <span class="control-label">ズーム:</span>
                   <div class="slider-container">
@@ -132,7 +137,7 @@
                     <span id="zoom-value" class="num-display">100%</span>
                   </div>
                 </div>
-                
+
                 <div class="control-row">
                   <span class="control-label">アスペクト比:</span>
                   <div class="radio-group">
@@ -150,7 +155,7 @@
                     </label>
                   </div>
                 </div>
-                
+
                 <div class="control-row" style="margin-top: 12px;">
                   <button id="btn-rotate" class="button-retro" disabled>左に90°回転</button>
                   <button id="btn-crop-reset" class="button-retro" disabled>リセット</button>
@@ -161,7 +166,7 @@
             <!-- Tab 2: Resolution, Colors, Dithering -->
             <div id="tab-retro" class="tab-pane">
               <div class="control-group">
-                
+
                 <div class="control-row">
                   <span class="control-label">ドットの粗さ:</span>
                   <div class="slider-container">
@@ -197,7 +202,7 @@
                     </select>
                   </div>
                 </div>
-                
+
                 <div class="control-row option-row">
                   <label class="checkbox-label">
                     <input type="checkbox" id="retro-scanlines">
@@ -228,7 +233,7 @@
                     </select>
                   </div>
                 </div>
-                
+
                 <div class="palette-preview-block" id="palette-color-container">
                   <div class="palette-preview-title">パレット構成色 (最大256色)</div>
                   <div id="palette-colors" class="palette-colors-grid">
@@ -301,17 +306,18 @@
 
       <!-- Window Body -->
       <div class="window-body">
-        
+
         <!-- Workspace containing ADG Preview Canvas and Editor -->
         <div class="workspace-section">
           <!-- ADG Preview Frame -->
           <div class="preview-container inset-bevel">
             <canvas id="adg-preview-canvas"></canvas>
-            
+
             <!-- Library empty placeholder -->
             <div id="adg-empty-placeholder" class="placeholder-screen hidden">
               <div class="retro-display-logo">DISK EMPTY</div>
-              <div class="placeholder-text">仮想ディスクにドット絵が保存されていません。<br>Pixel Studioアプリで画像を変換後、<br>「仮想ディスクへ保存」を実行してください。</div>
+              <div class="placeholder-text">仮想ディスクにドット絵が保存されていません。<br>Pixel Studioアプリで画像を変換後、<br>「仮想ディスクへ保存」を実行してください。
+              </div>
             </div>
           </div>
         </div>
@@ -324,7 +330,7 @@
           </ul>
 
           <div class="tab-content inset-bevel">
-            
+
             <!-- Tab 1: Select saved image from library -->
             <div id="tab-adg-image" class="tab-pane active">
               <div class="control-group">
@@ -345,7 +351,7 @@
             <!-- Tab 2: Dialogue editor -->
             <div id="tab-adg-text" class="tab-pane">
               <div class="control-group">
-                
+
                 <div class="control-row">
                   <span class="control-label">レイアウト:</span>
                   <div class="select-wrapper">
@@ -360,12 +366,14 @@
 
                 <div class="control-row">
                   <span class="control-label">名前:</span>
-                  <input type="text" id="adg-char-name" class="retro-input" value="ケン" placeholder="名前" style="flex: 1;">
+                  <input type="text" id="adg-char-name" class="retro-input" value="ケン" placeholder="名前"
+                    style="flex: 1;">
                 </div>
-                
+
                 <div class="control-row" style="align-items: flex-start;">
                   <span class="control-label" style="margin-top: 4px;">セリフ:</span>
-                  <textarea id="adg-dialog-text" class="retro-textarea" placeholder="ここにセリフを入力してください。" style="flex: 1; height: 50px; resize: none;">あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はじまっています。</textarea>
+                  <textarea id="adg-dialog-text" class="retro-textarea" placeholder="ここにセリフを入力してください。"
+                    style="flex: 1; height: 50px; resize: none;">あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はじまっています。</textarea>
                 </div>
 
                 <div class="control-row">
@@ -384,7 +392,8 @@
                   <hr class="retro-hr">
                   <div class="control-row" style="align-items: flex-start; margin-bottom: 8px;">
                     <span class="control-label" style="margin-top: 4px;">コマンド群:</span>
-                    <textarea id="adg-commands-list" class="retro-textarea" placeholder="コマンド群 (1行に1項目)" style="flex: 1; height: 52px; resize: none; font-family: monospace;">ばしょいどう&#13;&#10;はなせ&#13;&#10;しらべろ&#13;&#10;みせろ&#13;&#10;よべ&#13;&#10;スマホつかえ&#13;&#10;もちものみろ</textarea>
+                    <textarea id="adg-commands-list" class="retro-textarea" placeholder="コマンド群 (1行に1項目)"
+                      style="flex: 1; height: 52px; resize: none; font-family: monospace;">ばしょいどう&#13;&#10;はなせ&#13;&#10;しらべろ&#13;&#10;みせろ&#13;&#10;よべ&#13;&#10;スマホつかえ&#13;&#10;もちものみろ</textarea>
                   </div>
                   <div class="control-row">
                     <span class="control-label">指し位置:</span>
@@ -463,9 +472,18 @@
     <!-- Start Menu Content -->
     <div class="start-menu window hidden" id="start-menu-box">
       <div class="start-menu-sidebar">
-        <div class="sidebar-text">Win<span>98風</span></div>
+        <div class="sidebar-text">Satoshi<span>3104</span></div>
       </div>
       <div class="start-menu-items">
+        <div class="start-menu-item" id="start-program-pixel">
+          <span class="menu-icon icon-pixel-studio"></span>
+          PC-3104 Studio
+        </div>
+        <div class="start-menu-item" id="start-program-adg">
+          <span class="menu-icon icon-adg-maker"></span>
+          ADG Maker
+        </div>
+        <hr class="retro-hr">
         <div class="start-menu-item" id="start-reset-app">
           <span class="menu-icon icon-restart"></span>
           アプリケーション再起動
@@ -497,8 +515,10 @@
             <h3>PC-3104 Retro Pixel Studio</h3>
             <p>バージョン 1.04 (Build 3104)</p>
             <p>HTML5 Canvas API によるレトロ1枚絵コンバータ</p>
-            <p style="margin-top: 10px;">誤差拡散法(Floyd-Steinberg)や組織的ディザリング(Bayer)、中央値カット法(Median Cut)カラー減色アルゴリズムを実装し、80年代〜90年代の日本のパソコン用アドベンチャーゲーム（PC-3104等）の独特なグラフィックを再現します。</p>
-            <p style="margin-top: 10px; font-size: 11px; color:#555;">© 2026 Retro Computing Club. All rights reserved.</p>
+            <p style="margin-top: 10px;">誤差拡散法(Floyd-Steinberg)や組織的ディザリング(Bayer)、中央値カット法(Median
+              Cut)カラー減色アルゴリズムを実装し、80年代〜90年代の日本のパソコン用アドベンチャーゲーム（PC-3104等）の独特なグラフィックを再現します。</p>
+            <p style="margin-top: 10px; font-size: 11px; color:#555;">© 2026 Retro Computing Club. All rights reserved.
+            </p>
           </div>
         </div>
         <div class="text-right" style="margin-top: 15px;">
@@ -514,4 +534,5 @@
   <!-- Web Audio API Retro Sound Effects Engine -->
   <script src="app.js"></script>
 </body>
+
 </html>
