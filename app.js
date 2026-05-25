@@ -278,6 +278,7 @@ const DOM = {
   ditherType: document.getElementById("dither-type"),
   retroScanlines: document.getElementById("retro-scanlines"),
   monochromeMode: document.getElementById("monochrome-mode"),
+  retroSmoothScaling: document.getElementById("retro-smooth-scaling"),
 
   // Palette Controls
   palettePreset: document.getElementById("palette-preset"),
@@ -607,6 +608,12 @@ function setupParameters() {
     renderPipeline();
   });
 
+  // High quality downscaling smooth switch
+  DOM.retroSmoothScaling.addEventListener("change", (e) => {
+    SoundFX.playClick();
+    renderPipeline();
+  });
+
   // Palette Preset selection
   DOM.palettePreset.addEventListener("change", (e) => {
     SoundFX.playClick();
@@ -893,8 +900,12 @@ function renderPipeline() {
       offscreen.height = targetH;
       const offCtx = offscreen.getContext("2d");
       
-      // Turn off image smoothing for pixel scaling!
-      offCtx.imageSmoothingEnabled = false;
+      // Configure image smoothing based on "retro-smooth-scaling" checkbox
+      const smoothScaling = DOM.retroSmoothScaling ? DOM.retroSmoothScaling.checked : true;
+      offCtx.imageSmoothingEnabled = smoothScaling;
+      if (smoothScaling) {
+        offCtx.imageSmoothingQuality = "high";
+      }
       offCtx.drawImage(rotated, sx, sy, sw, sh, 0, 0, targetW, targetH);
       
       const imgData = offCtx.getImageData(0, 0, targetW, targetH);
@@ -930,14 +941,23 @@ function renderPipeline() {
       State.currentPalette = palette;
       renderPalettePreview(palette);
 
-      // Step 3: Run Quantization and Dithering
+      // Convert palette to Lab space for high-fidelity perceptually uniform color mapping
+      let paletteLab = null;
       if (palette && palette.length > 0) {
+        paletteLab = palette.map(color => ({
+          color: color,
+          Lab: rgbToLab(color.r, color.g, color.b)
+        }));
+      }
+
+      // Step 3: Run Quantization and Dithering
+      if (paletteLab && paletteLab.length > 0) {
         if (State.ditherType === "floyd") {
-          applyFloydSteinbergDithering(pixels, targetW, targetH, palette);
+          applyFloydSteinbergDithering(pixels, targetW, targetH, paletteLab);
         } else if (State.ditherType === "bayer") {
-          applyBayerOrderedDithering(pixels, targetW, targetH, palette, State.colorCount);
+          applyBayerOrderedDithering(pixels, targetW, targetH, paletteLab, State.colorCount);
         } else {
-          applyNoneQuantization(pixels, palette);
+          applyNoneQuantization(pixels, paletteLab);
         }
       }
 
@@ -1161,10 +1181,81 @@ function findClosestColor(r, g, b, palette) {
   return closestColor;
 }
 
+// --- CIELAB (Lab) Perceptually Uniform Color Space Conversion Utilities ---
+
+// Convert RGB to XYZ (under D65 standard illuminant reference point)
+function rgbToXyz(r, g, b) {
+  let rNormal = r / 255;
+  let gNormal = g / 255;
+  let bNormal = b / 255;
+
+  // Inverse sRGB gamma companding to linear RGB
+  rNormal = rNormal > 0.04045 ? Math.pow((rNormal + 0.055) / 1.055, 2.4) : rNormal / 12.92;
+  gNormal = gNormal > 0.04045 ? Math.pow((gNormal + 0.055) / 1.055, 2.4) : gNormal / 12.92;
+  bNormal = bNormal > 0.04045 ? Math.pow((bNormal + 0.055) / 1.055, 2.4) : bNormal / 12.92;
+
+  // Matrix multiplication for D65 white reference
+  const x = rNormal * 0.4124 + gNormal * 0.3576 + bNormal * 0.1805;
+  const y = rNormal * 0.2126 + gNormal * 0.7152 + bNormal * 0.0722;
+  const z = rNormal * 0.0193 + gNormal * 0.1192 + bNormal * 0.9505;
+
+  return { x: x * 100, y: y * 100, z: z * 100 };
+}
+
+// Convert XYZ to CIELAB (Lab) color space
+function xyzToLab(x, y, z) {
+  const refX = 95.047;
+  const refY = 100.000;
+  const refZ = 108.883;
+
+  let xN = x / refX;
+  let yN = y / refY;
+  let zN = z / refZ;
+
+  const fx = xN > 0.008856 ? Math.pow(xN, 1/3) : (7.787 * xN) + (16 / 116);
+  const fy = yN > 0.008856 ? Math.pow(yN, 1/3) : (7.787 * yN) + (16 / 116);
+  const fz = zN > 0.008856 ? Math.pow(zN, 1/3) : (7.787 * zN) + (16 / 116);
+
+  const L = yN > 0.008856 ? (116 * Math.pow(yN, 1/3)) - 16 : 903.3 * yN;
+  const a = 500 * (fx - fy);
+  const b = 200 * (fy - fz);
+
+  return { L, a, b };
+}
+
+// Direct helper to convert RGB to CIELAB space
+function rgbToLab(r, g, b) {
+  const xyz = rgbToXyz(r, g, b);
+  return xyzToLab(xyz.x, xyz.y, xyz.z);
+}
+
+// Find closest color using perceptually uniform Lab distance
+function findClosestColorLab(r, g, b, paletteLab) {
+  const pixelLab = rgbToLab(r, g, b);
+  let closestColor = paletteLab[0].color;
+  let minDistanceSq = Infinity;
+
+  for (let i = 0; i < paletteLab.length; i++) {
+    const item = paletteLab[i];
+    const dL = pixelLab.L - item.Lab.L;
+    const da = pixelLab.a - item.Lab.a;
+    const db = pixelLab.b - item.Lab.b;
+    
+    const dSq = dL * dL + da * da + db * db;
+    
+    if (dSq < minDistanceSq) {
+      minDistanceSq = dSq;
+      closestColor = item.color;
+    }
+  }
+
+  return closestColor;
+}
+
 // --- DITHERING ENGINES ---
 
-// Floyd-Steinberg Dithering: Error Diffusion
-function applyFloydSteinbergDithering(pixels, width, height, palette) {
+// Floyd-Steinberg Dithering: Error Diffusion using CIELAB space
+function applyFloydSteinbergDithering(pixels, width, height, paletteLab) {
   // Use a Float32Array to preserve fractional error precision
   const buffer = new Float32Array(pixels.length);
   for (let i = 0; i < pixels.length; i++) {
@@ -1179,8 +1270,8 @@ function applyFloydSteinbergDithering(pixels, width, height, palette) {
       const oldG = buffer[idx+1];
       const oldB = buffer[idx+2];
       
-      // Match color
-      const closest = findClosestColor(oldR, oldG, oldB, palette);
+      // Match color in high-fidelity CIELAB space
+      const closest = findClosestColorLab(oldR, oldG, oldB, paletteLab);
       
       pixels[idx]   = closest.r;
       pixels[idx+1] = closest.g;
@@ -1228,8 +1319,8 @@ function applyFloydSteinbergDithering(pixels, width, height, palette) {
   }
 }
 
-// Bayer Ordered Dithering: Organized Patterns
-function applyBayerOrderedDithering(pixels, width, height, palette, colorCount) {
+// Bayer Ordered Dithering: Organized Patterns using CIELAB space
+function applyBayerOrderedDithering(pixels, width, height, paletteLab, colorCount) {
   // Determine pattern spread/contrast bias based on available colors
   // A tighter color space needs more spreading to mesh gradients correctly
   let spread = 24;
@@ -1254,7 +1345,7 @@ function applyBayerOrderedDithering(pixels, width, height, palette, colorCount) 
       const adjustedG = Math.max(0, Math.min(255, pixels[idx+1] + ditherAdjustment));
       const adjustedB = Math.max(0, Math.min(255, pixels[idx+2] + ditherAdjustment));
       
-      const closest = findClosestColor(adjustedR, adjustedG, adjustedB, palette);
+      const closest = findClosestColorLab(adjustedR, adjustedG, adjustedB, paletteLab);
       
       pixels[idx]   = closest.r;
       pixels[idx+1] = closest.g;
@@ -1264,10 +1355,10 @@ function applyBayerOrderedDithering(pixels, width, height, palette, colorCount) 
   }
 }
 
-// Simple nearest color mapping (no dithering)
-function applyNoneQuantization(pixels, palette) {
+// Simple nearest color mapping (no dithering) using CIELAB space
+function applyNoneQuantization(pixels, paletteLab) {
   for (let i = 0; i < pixels.length; i += 4) {
-    const closest = findClosestColor(pixels[i], pixels[i+1], pixels[i+2], palette);
+    const closest = findClosestColorLab(pixels[i], pixels[i+1], pixels[i+2], paletteLab);
     pixels[i]   = closest.r;
     pixels[i+1] = closest.g;
     pixels[i+2] = closest.b;
