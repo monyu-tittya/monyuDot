@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PC-9801 Retro Pixel Studio</title>
+  <!-- Google Fonts: DotGothic16 & VT323 for high fidelity pixel feel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Retro Teal Desktop Environment -->
+  <div id="desktop">
+    
+    <!-- Desktop Icons -->
+    <div class="desktop-icon" id="icon-pc98" role="button" tabindex="0">
+      <div class="icon-image pc98-icon-art"></div>
+      <div class="icon-label">PC-98 Studio</div>
+    </div>
+    
+    <div class="desktop-icon" id="icon-mycomputer" role="button" tabindex="0">
+      <div class="icon-image mycomputer-icon-art"></div>
+      <div class="icon-label">マイ コンピュータ</div>
+    </div>
+
+    <div class="desktop-icon" id="icon-recycle" role="button" tabindex="0">
+      <div class="icon-image recycle-icon-art"></div>
+      <div class="icon-label">ごみ箱</div>
+    </div>
+
+    <!-- Main Window: PC-98 Pixel Converter -->
+    <div class="window active" id="app-window">
+      <!-- Title bar -->
+      <div class="title-bar">
+        <div class="title-bar-text">
+          <span class="window-icon"></span>
+          PC-9801 Retro Pixel Studio - PIC2PC98.EXE
+        </div>
+        <div class="title-bar-controls">
+          <button aria-label="Minimize" id="btn-minimize"></button>
+          <button aria-label="Maximize" id="btn-maximize"></button>
+          <button aria-label="Close" id="btn-close"></button>
+        </div>
+      </div>
+
+      <!-- Menu bar -->
+      <div class="menu-bar">
+        <div class="menu-item" tabindex="0">ファイル(<span class="underline">F</span>)
+          <div class="dropdown-menu">
+            <div class="menu-entry" id="menu-upload">開く(<span class="underline">O</span>)...</div>
+            <div class="menu-entry" id="menu-save">保存(<span class="underline">S</span>)</div>
+            <div class="separator"></div>
+            <div class="menu-entry" id="menu-reset">初期化(<span class="underline">R</span>)</div>
+          </div>
+        </div>
+        <div class="menu-item" tabindex="0">編集(<span class="underline">E</span>)
+          <div class="dropdown-menu">
+            <div class="menu-entry" id="menu-crop-toggle">切り抜き範囲リセット</div>
+          </div>
+        </div>
+        <div class="menu-item" tabindex="0">ヘルプ(<span class="underline">H</span>)
+          <div class="dropdown-menu">
+            <div class="menu-entry" id="menu-about">バージョン情報(<span class="underline">A</span>)...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Window Body -->
+      <div class="window-body">
+        
+        <!-- Top Portion: Image Preview & Work Area -->
+        <div class="workspace-section">
+          <!-- Preview Frame -->
+          <div class="preview-container inset-bevel">
+            <!-- Canvas for original crop editing -->
+            <canvas id="crop-canvas" class="hidden"></canvas>
+            <!-- Canvas for retro display -->
+            <canvas id="output-canvas"></canvas>
+            
+            <!-- Upload Placeholder Screen -->
+            <div id="upload-placeholder" class="placeholder-screen">
+              <div class="retro-display-logo">PC-9801</div>
+              <div class="placeholder-text">画像をドロップするか、<br>下のボタンからファイルを選択してください。</div>
+              <label for="image-input" class="button-retro upload-btn">
+                <span>画像を開く...</span>
+              </label>
+              <input type="file" id="image-input" accept="image/*" class="hidden">
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div id="loading-overlay" class="hidden">
+              <div class="loading-box window">
+                <div class="title-bar"><div class="title-bar-text">処理中...</div></div>
+                <div class="window-body text-center">
+                  <div class="spinner"></div>
+                  <div style="margin-top: 10px;">画像をレンダリングしています...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Portion: Control Panels (Tabs styled Windows 98 style) -->
+        <div class="control-section">
+          <ul class="tabs" role="tablist">
+            <li class="tab active" role="tab" data-tab="tab-crop" tabindex="0">クロップ範囲</li>
+            <li class="tab" role="tab" data-tab="tab-retro" tabindex="0">ドット・色数</li>
+            <li class="tab" role="tab" data-tab="tab-palette" tabindex="0">パレット</li>
+          </ul>
+
+          <div class="tab-content inset-bevel">
+            
+            <!-- Tab 1: Crop and Source Alignment -->
+            <div id="tab-crop" class="tab-pane active">
+              <div class="control-group">
+                <label class="group-title">クロップ設定</label>
+                <div class="help-desc">プレビュー画面上でドラッグ（スワイプ）して位置を調整できます。</div>
+                
+                <div class="control-row">
+                  <span class="control-label">ズーム:</span>
+                  <div class="slider-container">
+                    <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" disabled>
+                    <span id="zoom-value" class="num-display">100%</span>
+                  </div>
+                </div>
+                
+                <div class="control-row">
+                  <span class="control-label">アスペクト比:</span>
+                  <div class="radio-group">
+                    <label class="radio-label">
+                      <input type="radio" name="aspect-ratio" value="4-3" checked>
+                      <span>PC-98 (4:3)</span>
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="aspect-ratio" value="1-1">
+                      <span>正方形 (1:1)</span>
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="aspect-ratio" value="free">
+                      <span>フリー</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="control-row" style="margin-top: 12px;">
+                  <button id="btn-rotate" class="button-retro" disabled>左に90°回転</button>
+                  <button id="btn-crop-reset" class="button-retro" disabled>リセット</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Resolution, Colors, Dithering -->
+            <div id="tab-retro" class="tab-pane">
+              <div class="control-group">
+                
+                <div class="control-row">
+                  <span class="control-label">ドットの粗さ:</span>
+                  <div class="slider-container">
+                    <input type="range" id="pixel-width" min="160" max="640" step="10" value="320">
+                    <span id="width-value" class="num-display">320px</span>
+                  </div>
+                </div>
+                <div class="help-desc inline-desc">横幅を縮小してレトロゲームの解像度を再現します。</div>
+
+                <hr class="retro-hr">
+
+                <div class="control-row">
+                  <span class="control-label">色数制限:</span>
+                  <div class="select-wrapper">
+                    <select id="color-count">
+                      <option value="16">16色 (PC-9801標準)</option>
+                      <option value="64">64色 (レトロパソコン風)</option>
+                      <option value="256" selected>256色 (PC-9821/VGA)</option>
+                      <option value="0">フルカラー (モザイクのみ)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <hr class="retro-hr">
+
+                <div class="control-row">
+                  <span class="control-label">ディザリング:</span>
+                  <div class="select-wrapper">
+                    <select id="dither-type">
+                      <option value="floyd" selected>誤差拡散 (Floyd-Steinberg)</option>
+                      <option value="bayer">組織的ディザ (Bayer 8x8)</option>
+                      <option value="none">なし (階調荒め)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="control-row option-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="retro-scanlines">
+                    <span>スキャンライン (走査線) 効果</span>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="monochrome-mode">
+                    <span>グリーンモニター (白黒緑)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 3: Palettes Selection -->
+            <div id="tab-palette" class="tab-pane">
+              <div class="control-group">
+                <label class="group-title">カラーパレット選択</label>
+                <div class="control-row">
+                  <span class="control-label">パレットタイプ:</span>
+                  <div class="select-wrapper">
+                    <select id="palette-preset">
+                      <option value="adaptive" selected>自動最適化 (画像から自動抽出)</option>
+                      <option value="pc98-system">PC-9801システムカラー (16色)</option>
+                      <option value="gameboy">ゲームボーイ風 (緑4階調)</option>
+                      <option value="cga">CGAレトロ (4色)</option>
+                      <option value="nes">ファミリーコンピュータ風 (256色制限)</option>
+                      <option value="cyberpunk">サイバーパンク・ネオン (16色)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="palette-preview-block" id="palette-color-container">
+                  <div class="palette-preview-title">パレット構成色 (最大256色)</div>
+                  <div id="palette-colors" class="palette-colors-grid">
+                    <!-- Dynamic colors will appear here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="action-buttons-row">
+            <button id="btn-download" class="button-retro primary" disabled>
+              <span class="icon-floppy"></span>
+              PNG画像を保存
+            </button>
+            <label for="image-input-sub" class="button-retro text-center" style="cursor: pointer;">
+              他の画像を開く
+            </label>
+            <input type="file" id="image-input-sub" accept="image/*" class="hidden">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Window Status Bar -->
+      <div class="status-bar">
+        <p class="status-bar-field" id="status-text">画像を選択してください</p>
+        <p class="status-bar-field" id="status-resolution">解像度: -- x --</p>
+        <p class="status-bar-field" id="status-time">処理速度: 0ms</p>
+      </div>
+    </div>
+
+    <!-- Start Menu & Taskbar -->
+    <div id="taskbar">
+      <button class="start-button" id="btn-start">
+        <span class="start-logo"></span>
+        スタート
+      </button>
+      <div class="taskbar-divider"></div>
+      <div class="taskbar-windows">
+        <div class="taskbar-window-tab active" id="task-app-tab">
+          <span class="window-icon"></span>
+          PC-9801 Retro Pixel Studio
+        </div>
+      </div>
+      <div class="taskbar-divider"></div>
+      <div class="tray-clock inset-bevel">
+        <span id="tray-sound-icon" class="sound-icon-on" title="音量の切替"></span>
+        <span id="tray-time">00:00</span>
+      </div>
+    </div>
+
+    <!-- Start Menu Content -->
+    <div class="start-menu window hidden" id="start-menu-box">
+      <div class="start-menu-sidebar">
+        <div class="sidebar-text">Windows <span>98</span></div>
+      </div>
+      <div class="start-menu-items">
+        <div class="start-menu-item" id="start-reset-app">
+          <span class="menu-icon icon-restart"></span>
+          アプリケーション再起動
+        </div>
+        <div class="start-menu-item" id="start-sound-toggle">
+          <span class="menu-icon icon-audio"></span>
+          サウンド効果の切替
+        </div>
+        <hr class="retro-hr">
+        <div class="start-menu-item" id="start-about">
+          <span class="menu-icon icon-info"></span>
+          バージョン情報...
+        </div>
+      </div>
+    </div>
+
+    <!-- Retro System About Modal Dialog -->
+    <div class="window modal hidden" id="about-dialog">
+      <div class="title-bar">
+        <div class="title-bar-text">バージョン情報 - PIC2PC98.EXE</div>
+        <div class="title-bar-controls">
+          <button aria-label="Close" class="btn-modal-close"></button>
+        </div>
+      </div>
+      <div class="window-body">
+        <div class="about-content">
+          <div class="about-logo pc98-icon-art"></div>
+          <div class="about-text">
+            <h3>PC-9801 Retro Pixel Studio</h3>
+            <p>バージョン 1.98 (Build 9800)</p>
+            <p>HTML5 Canvas API によるレトロ1枚絵コンバータ</p>
+            <p style="margin-top: 10px;">誤差拡散法(Floyd-Steinberg)や組織的ディザリング(Bayer)、中央値カット法(Median Cut)カラー減色アルゴリズムを実装し、80年代〜90年代の日本のパソコン用アドベンチャーゲーム（PC-98等）の独特なグラフィックを再現します。</p>
+            <p style="margin-top: 10px; font-size: 11px; color:#555;">© 2026 Retro Computing Club. All rights reserved.</p>
+          </div>
+        </div>
+        <div class="text-right" style="margin-top: 15px;">
+          <button class="button-retro btn-modal-close" style="width: 80px;">OK</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Web Audio API Retro Sound Effects Engine -->
+  <script src="app.js"></script>
+</body>
+</html>
