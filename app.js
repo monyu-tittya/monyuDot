@@ -1523,13 +1523,65 @@ function triggerTypewriter() {
   }, 45); // ~22 chars per second, standard retro speed
 }
 
+// --- Non-Anti-Aliased Pixelated Text Rendering Utility ---
+function drawPixelatedText(ctx, text, x, y, font, color) {
+  ctx.font = font;
+  const metrics = ctx.measureText(text);
+  const textWidth = Math.ceil(metrics.width) + 10;
+  
+  let fontSize = 15;
+  const match = font.match(/(\d+)px/);
+  if (match) fontSize = parseInt(match[1]);
+  const textHeight = Math.ceil(fontSize * 1.5);
+
+  if (textWidth <= 0 || textHeight <= 0) return;
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = textWidth;
+  tempCanvas.height = textHeight;
+  const tempCtx = tempCanvas.getContext("2d");
+
+  tempCtx.font = font;
+  tempCtx.textBaseline = "top";
+  tempCtx.fillStyle = "#ffffff";
+  tempCtx.fillText(text, 0, 0);
+
+  const imgData = tempCtx.getImageData(0, 0, textWidth, textHeight);
+  const pixels = imgData.data;
+
+  let targetR = 255, targetG = 255, targetB = 255;
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    if (hex.length === 6) {
+      targetR = parseInt(hex.slice(0, 2), 16);
+      targetG = parseInt(hex.slice(2, 4), 16);
+      targetB = parseInt(hex.slice(4, 6), 16);
+    }
+  }
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const alpha = pixels[i + 3];
+    if (alpha > 80) { // threshold value to clear anti-aliasing
+      pixels[i] = targetR;
+      pixels[i + 1] = targetG;
+      pixels[i + 2] = targetB;
+      pixels[i + 3] = 255;
+    } else {
+      pixels[i + 3] = 0;
+    }
+  }
+
+  tempCtx.putImageData(imgData, 0, 0);
+  ctx.drawImage(tempCanvas, x, y);
+}
+
 function drawADGComposition() {
   const canvas = DOM.adgPreviewCanvas;
   const ctx = canvas.getContext("2d");
 
-  // Lock canvas resolution to authentic PC-3104 resolution: 640 x 400
+  // Lock canvas resolution to authentic 4:3 stretched PC-3104 resolution: 640 x 480
   canvas.width = 640;
-  canvas.height = 400;
+  canvas.height = 480;
 
   const textColor = DOM.adgTextColor.value;
 
@@ -1538,30 +1590,26 @@ function drawADGComposition() {
     
     // 1. Draw solid black backdrop
     ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, 640, 400);
+    ctx.fillRect(0, 0, 640, 480);
 
-    // 2. Draw Bounding Frame around top-left Still image box (X=24, Y=24, W=320, H=200)
+    // 2. Draw Bounding Frame around top-left Still image box (X=24, Y=24, W=320, H=240) - Authentic 4:3 box!
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2;
-    ctx.strokeRect(24, 24, 320, 200);
+    ctx.strokeRect(24, 24, 320, 240);
 
     // Draw background pixel art still inside framed window
     if (State.adgBackgroundImg) {
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(State.adgBackgroundImg, 24, 24, 320, 200);
+      ctx.drawImage(State.adgBackgroundImg, 24, 24, 320, 240);
     } else {
       // gray placeholder screen
       ctx.fillStyle = "#333333";
-      ctx.fillRect(24, 24, 320, 200);
+      ctx.fillRect(24, 24, 320, 240);
     }
 
     // 3. Draw Command Menu list on the top-right
     const commandsText = DOM.adgCommandsList.value || "ばしょいどう\nはなせ\nしらべろ\nみせろ\nよべ\nスマホつかえ\nもちものみろ";
     const commands = commandsText.split("\n").map(c => c.trim()).filter(c => c.length > 0);
-    
-    ctx.font = "16px 'DotGothic16', monospace";
-    ctx.fillStyle = "#ffffff";
-    ctx.textBaseline = "top";
     
     const startMenuX = 370;
     const startMenuY = 28;
@@ -1573,17 +1621,15 @@ function drawADGComposition() {
         const lineY = startMenuY + (idx * menuSpacing);
         if (idx === activeCursorIndex) {
           // Draw active selector pointer "▶" next to active item
-          ctx.fillStyle = "#ffffff";
-          ctx.fillText("▶", startMenuX, lineY);
-          ctx.fillText(cmd, startMenuX + 20, lineY);
+          drawPixelatedText(ctx, "▶", startMenuX, lineY, "16px 'DotGothic16', monospace", "#ffffff");
+          drawPixelatedText(ctx, cmd, startMenuX + 20, lineY, "16px 'DotGothic16', monospace", "#ffffff");
         } else {
-          ctx.fillStyle = "#ffffff";
-          ctx.fillText(cmd, startMenuX + 20, lineY);
+          drawPixelatedText(ctx, cmd, startMenuX + 20, lineY, "16px 'DotGothic16', monospace", "#ffffff");
         }
       }
     });
 
-    // 4. Draw Bottom Dialogue box (X=24, Y=244, W=592, H=132)
+    // 4. Draw Bottom Dialogue box (X=24, Y=284, W=592, H=172)
     // Custom rounded rect border path
     const drawRoundedRect = (c, x, y, width, height, r) => {
       c.beginPath();
@@ -1601,22 +1647,18 @@ function drawADGComposition() {
 
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2;
-    drawRoundedRect(ctx, 24, 244, 592, 132, 8);
+    drawRoundedRect(ctx, 24, 284, 592, 172, 8);
     ctx.stroke();
 
-    // 5. Draw Dialogue inside bottom box (X=40, Y=262)
-    ctx.font = "15px 'DotGothic16', monospace";
-    ctx.fillStyle = textColor;
-    ctx.textBaseline = "top";
-
+    // 5. Draw Dialogue inside bottom box (X=40, Y=302)
     const lines = State.adgDisplayedText.split("\n");
     const lineSpacing = 24;
     const startX = 40;
-    const startY = 262;
+    const startY = 302; // 284 + 18 offset
 
     lines.forEach((line, idx) => {
-      if (idx < 4) { // Draw up to 4 lines inside rounded rect
-        ctx.fillText(line, startX, startY + (idx * lineSpacing));
+      if (idx < 5) { // Draw up to 5 lines inside rounded rect
+        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "15px 'DotGothic16', monospace", textColor);
       }
     });
 
@@ -1625,9 +1667,9 @@ function drawADGComposition() {
       if (Math.floor(Date.now() / 300) % 2 === 0) {
         ctx.fillStyle = textColor;
         ctx.beginPath();
-        ctx.moveTo(580, 344);
-        ctx.lineTo(592, 344);
-        ctx.lineTo(586, 352);
+        ctx.moveTo(580, 424);
+        ctx.lineTo(592, 424);
+        ctx.lineTo(586, 432);
         ctx.fill();
       }
     }
@@ -1638,47 +1680,41 @@ function drawADGComposition() {
     // 1. Draw Background
     if (State.adgBackgroundImg) {
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(State.adgBackgroundImg, 0, 0, 640, 400);
+      ctx.drawImage(State.adgBackgroundImg, 0, 0, 640, 480);
     } else {
       ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, 640, 400);
+      ctx.fillRect(0, 0, 640, 480);
     }
 
     // 2. Draw Dialogue Textbox Overlay at the bottom
     ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
-    ctx.fillRect(16, 260, 608, 124);
+    ctx.fillRect(16, 340, 608, 124);
 
     // Outer Gray border
     ctx.strokeStyle = "#808080";
     ctx.lineWidth = 2;
-    ctx.strokeRect(16, 260, 608, 124);
+    ctx.strokeRect(16, 340, 608, 124);
 
     // Inner White border
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1;
-    ctx.strokeRect(18, 262, 604, 120);
+    ctx.strokeRect(18, 342, 604, 120);
 
     // 3. Draw Character Name plate
     const charName = DOM.adgCharName.value.trim();
     if (charName) {
-      ctx.font = "bold 15px 'DotGothic16', monospace";
-      ctx.fillStyle = "#00ffff"; // Classic PC-3104 cyan name plate color
-      ctx.fillText(`【${charName}】`, 32, 292);
+      drawPixelatedText(ctx, `【${charName}】`, 32, 372, "bold 15px 'DotGothic16', monospace", "#00ffff");
     }
 
     // 4. Draw Dialogue lines
-    ctx.font = "15px 'DotGothic16', monospace";
-    ctx.fillStyle = textColor;
-    ctx.textBaseline = "top";
-
     const lines = State.adgDisplayedText.split("\n");
     const lineSpacing = 24;
     const startX = 32;
-    const startY = charName ? 306 : 288; // shift up slightly if no name
+    const startY = charName ? 386 : 368; // shift up slightly if no name
 
     lines.forEach((line, idx) => {
       if (idx < 3) { // Draw up to 3 lines max
-        ctx.fillText(line, startX, startY + (idx * lineSpacing));
+        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "15px 'DotGothic16', monospace", textColor);
       }
     });
 
@@ -1687,9 +1723,9 @@ function drawADGComposition() {
       if (Math.floor(Date.now() / 300) % 2 === 0) {
         ctx.fillStyle = textColor;
         ctx.beginPath();
-        ctx.moveTo(590, 358);
-        ctx.lineTo(602, 358);
-        ctx.lineTo(596, 366);
+        ctx.moveTo(590, 438);
+        ctx.lineTo(602, 438);
+        ctx.lineTo(596, 446);
         ctx.fill();
       }
     }
@@ -1936,17 +1972,17 @@ function downloadADGImage() {
 
   const canvas = DOM.adgPreviewCanvas;
   
-  // Upscale composited ADG window by 2x for sharp full visual novel 1280x800 resolution!
+  // Upscale composited ADG window by 2x for sharp full visual novel 1280x960 resolution!
   const upscaleCanvas = document.createElement("canvas");
   upscaleCanvas.width = 1280;
-  upscaleCanvas.height = 800;
+  upscaleCanvas.height = 960;
   
   const ctx = upscaleCanvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   ctx.mozImageSmoothingEnabled = false;
   ctx.webkitImageSmoothingEnabled = false;
   
-  ctx.drawImage(canvas, 0, 0, 1280, 800);
+  ctx.drawImage(canvas, 0, 0, 1280, 960);
   
   const link = document.createElement("a");
   link.download = `pc3104_adg_${Date.now()}.png`;
@@ -1982,7 +2018,7 @@ function startADGGifRecording() {
   SoundFX.playClick();
   State.adgIsRecordingGif = true;
   State.adgGifFrames = [];
-  State.adgBlinkFramesCount = 60; // 60 frames = approx 2.7 seconds of finished text pause with blinking cursor
+  State.adgBlinkFramesCount = 30; // 30 frames = approx 1.35 seconds of finished text pause with blinking cursor (faster, optimized!)
   
   DOM.adgStatusText.textContent = "GIF録画準備中...";
   enableADGButtons(false);
@@ -2007,11 +2043,11 @@ function compileADGGif() {
   gifshot.createGIF({
     images: State.adgGifFrames,
     gifWidth: 640,
-    gifHeight: 400,
+    gifHeight: 480,
     interval: 0.045, // 45ms per frame matching typewriter delay
     numFrames: State.adgGifFrames.length,
-    sampleInterval: 10,
-    numWorkers: 0
+    sampleInterval: 20, // Faster color quantization sampling rate for responsive encoding
+    numWorkers: 2 // Use Web Workers (via safe blob urls) to process in background, keeping UI responsive!
   }, function(obj) {
     if (!obj.error) {
       const link = document.createElement("a");
