@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PC-9801 Retro Pixel Studio - Application Engine (app.js)
+   PC-3104 Retro Pixel Studio - Application Engine (app.js)
    ========================================================================== */
 
 // --- Retro Sound Effects Engine (Web Audio API) ---
@@ -63,7 +63,7 @@ const SoundFX = {
     this.init();
 
     const now = this.ctx.currentTime;
-    // Nostalgic PC-98 FM Chime arpeggio: C5 -> E5 -> G5 -> C6
+    // Nostalgic PC-3104 FM Chime arpeggio: C5 -> E5 -> G5 -> C6
     const notes = [523.25, 659.25, 783.99, 1046.50];
     const noteDuration = 0.08;
 
@@ -109,7 +109,7 @@ const SoundFX = {
 
 // --- Preset Palettes Configuration ---
 const PalettePresets = {
-  // PC-9801 Legend System 16-color Analog Palette
+  // PC-3104 Legend System 16-color Analog Palette
   "pc98-system": [
     { r: 0, g: 0, b: 0 },       // Black
     { r: 0, g: 0, b: 128 },     // Dark Blue
@@ -129,7 +129,7 @@ const PalettePresets = {
     { r: 255, g: 255, b: 255 }  // White
   ],
 
-  // Game Boy DMG Green Palette (4 shades)
+  // GB風 DMG Green Palette (4 shades)
   "gameboy": [
     { r: 15, g: 56, b: 15 },
     { r: 48, g: 98, b: 48 },
@@ -165,7 +165,7 @@ const PalettePresets = {
     { r: 255, g: 255, b: 255 }
   ],
 
-  // NES Classic dominant representative colors (32 colors)
+  // FC風 Classic dominant representative colors (32 colors)
   "nes": [
     { r: 124, g: 124, b: 124 }, { r: 0, g: 0, b: 252 }, { r: 0, g: 0, b: 188 }, { r: 68, g: 40, b: 188 },
     { r: 148, g: 0, b: 132 }, { r: 168, g: 0, b: 32 }, { r: 168, g: 16, b: 0 }, { r: 136, g: 20, b: 0 },
@@ -212,7 +212,7 @@ const State = {
   targetWidth: 320,
   colorCount: 256,        // 16, 64, 256, 0 (fullcolor)
   ditherType: "floyd",    // "floyd", "bayer", "none"
-  paletteType: "adaptive",// "adaptive", "pc98-system", "gameboy", ...
+  paletteType: "adaptive",// "adaptive", "pc98-system" (PC-3104システム), "gameboy" (GB風), ...
   scanlines: false,
   monochrome: false,
 
@@ -1290,7 +1290,7 @@ function downloadResultImage() {
   
   // Trigger file download
   const link = document.createElement("a");
-  link.download = `pic2pc98_${Date.now()}.png`;
+  link.download = `pic2pc3104_${Date.now()}.png`;
   link.href = upscaleCanvas.toDataURL("image/png");
   document.body.appendChild(link);
   link.click();
@@ -1307,7 +1307,7 @@ function saveResultToDisk() {
   const dataUrl = DOM.outputCanvas.toDataURL("image/png");
 
   try {
-    let library = JSON.parse(localStorage.getItem("pic98_library") || "[]");
+    let library = JSON.parse(localStorage.getItem("pic3104_library") || "[]");
 
     // Limit to max 12 items to stay under 5MB localStorage limits
     if (library.length >= 12) {
@@ -1326,7 +1326,7 @@ function saveResultToDisk() {
       time: timeStr
     });
 
-    localStorage.setItem("pic98_library", JSON.stringify(library));
+    localStorage.setItem("pic3104_library", JSON.stringify(library));
 
     updateStatus(`仮想ディスクに保存完了: ${fileName}`);
     SoundFX.playRenderChime();
@@ -1341,7 +1341,7 @@ function saveResultToDisk() {
 }
 
 function refreshLibraryUI() {
-  const library = JSON.parse(localStorage.getItem("pic98_library") || "[]");
+  const library = JSON.parse(localStorage.getItem("pic3104_library") || "[]");
 
   if (library.length === 0) {
     DOM.adgEmptyPlaceholder.classList.remove("hidden");
@@ -1398,9 +1398,9 @@ function deleteSelectedFile() {
   if (!State.adgSelectedId) return;
 
   try {
-    let library = JSON.parse(localStorage.getItem("pic98_library") || "[]");
+    let library = JSON.parse(localStorage.getItem("pic3104_library") || "[]");
     library = library.filter(item => item.id !== State.adgSelectedId);
-    localStorage.setItem("pic98_library", JSON.stringify(library));
+    localStorage.setItem("pic3104_library", JSON.stringify(library));
 
     State.adgSelectedId = null;
     State.adgBackgroundImgData = null;
@@ -1443,7 +1443,7 @@ function triggerTypewriter() {
     // Detective ADV style: pre-formatted inline name and brackets
     fullText = charName ? `${charName}「${dialogValue}` : dialogValue;
   } else {
-    // PC-98 standard style: separate name plate and pure dialog text
+    // PC-3104 standard style: separate name plate and pure dialog text
     fullText = dialogValue;
   }
 
@@ -1489,7 +1489,8 @@ function triggerTypewriter() {
           drawADGComposition();
           
           State.adgGifFrames.push(DOM.adgPreviewCanvas.toDataURL("image/png"));
-          const progress = 80 + Math.round(((10 - State.adgBlinkFramesCount) / 10) * 20);
+          const totalBlinkFrames = 60;
+          const progress = 80 + Math.round(((totalBlinkFrames - State.adgBlinkFramesCount) / totalBlinkFrames) * 20);
           DOM.adgStatusText.textContent = `GIF録画中 (カーソル点滅): ${progress}%`;
         } else {
           clearInterval(State.adgTypewriterTimer);
@@ -1510,7 +1511,7 @@ function drawADGComposition() {
   const canvas = DOM.adgPreviewCanvas;
   const ctx = canvas.getContext("2d");
 
-  // Lock canvas resolution to authentic PC-9801 resolution: 640 x 400
+  // Lock canvas resolution to authentic PC-3104 resolution: 640 x 400
   canvas.width = 640;
   canvas.height = 400;
 
@@ -1616,7 +1617,7 @@ function drawADGComposition() {
     }
 
   } else {
-    // --- Layout 1: Classic Full-Screen Slide Layout (PC-98 Standard) ---
+    // --- Layout 1: Classic Full-Screen Slide Layout (PC-3104 Standard) ---
     
     // 1. Draw Background
     if (State.adgBackgroundImg) {
@@ -1645,7 +1646,7 @@ function drawADGComposition() {
     const charName = DOM.adgCharName.value.trim();
     if (charName) {
       ctx.font = "bold 15px 'DotGothic16', monospace";
-      ctx.fillStyle = "#00ffff"; // Classic PC-98 cyan name plate color
+      ctx.fillStyle = "#00ffff"; // Classic PC-3104 cyan name plate color
       ctx.fillText(`【${charName}】`, 32, 292);
     }
 
@@ -1914,7 +1915,7 @@ function downloadADGImage() {
   ctx.drawImage(canvas, 0, 0, 1280, 800);
   
   const link = document.createElement("a");
-  link.download = `pc98_adg_${Date.now()}.png`;
+  link.download = `pc3104_adg_${Date.now()}.png`;
   link.href = upscaleCanvas.toDataURL("image/png");
   document.body.appendChild(link);
   link.click();
@@ -1943,7 +1944,7 @@ function startADGGifRecording() {
   SoundFX.playClick();
   State.adgIsRecordingGif = true;
   State.adgGifFrames = [];
-  State.adgBlinkFramesCount = 10;
+  State.adgBlinkFramesCount = 60; // 60 frames = approx 2.7 seconds of finished text pause with blinking cursor
   
   DOM.adgStatusText.textContent = "GIF録画準備中...";
   enableADGButtons(false);
@@ -1976,7 +1977,7 @@ function compileADGGif() {
   }, function(obj) {
     if (!obj.error) {
       const link = document.createElement("a");
-      link.download = `pc98_adg_animation_${Date.now()}.gif`;
+      link.download = `pc3104_adg_animation_${Date.now()}.gif`;
       link.href = obj.image;
       document.body.appendChild(link);
       link.click();

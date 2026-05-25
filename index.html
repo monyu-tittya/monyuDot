@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PC-9801 Retro Pixel Studio</title>
+  <title>PC-3104 Retro Pixel Studio</title>
   <!-- Google Fonts: DotGothic16 & VT323 for high fidelity pixel feel -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,7 @@
     <!-- Desktop Icons -->
     <div class="desktop-icon" id="icon-pc98" role="button" tabindex="0">
       <div class="icon-image pc98-icon-art"></div>
-      <div class="icon-label">PC-98 Studio</div>
+      <div class="icon-label">PC-3104 Studio</div>
     </div>
     
     <div class="desktop-icon" id="icon-mycomputer" role="button" tabindex="0">
@@ -42,7 +42,7 @@
       <div class="title-bar">
         <div class="title-bar-text">
           <span class="window-icon"></span>
-          PC-9801 Retro Pixel Studio - PIC2PC98.EXE
+          PC-3104 Retro Pixel Studio - PIC2PC3104.EXE
         </div>
         <div class="title-bar-controls">
           <button aria-label="Minimize" id="btn-minimize"></button>
@@ -88,7 +88,7 @@
             
             <!-- Upload Placeholder Screen -->
             <div id="upload-placeholder" class="placeholder-screen">
-              <div class="retro-display-logo">PC-9801</div>
+              <div class="retro-display-logo">PC-3104</div>
               <div class="placeholder-text">画像をドロップするか、<br>下のボタンからファイルを選択してください。</div>
               <label for="image-input" class="button-retro upload-btn">
                 <span>画像を開く...</span>
@@ -138,7 +138,7 @@
                   <div class="radio-group">
                     <label class="radio-label">
                       <input type="radio" name="aspect-ratio" value="4-3" checked>
-                      <span>PC-98 (4:3)</span>
+                      <span>PC-3104 (4:3)</span>
                     </label>
                     <label class="radio-label">
                       <input type="radio" name="aspect-ratio" value="1-1">
@@ -177,9 +177,9 @@
                   <span class="control-label">色数制限:</span>
                   <div class="select-wrapper">
                     <select id="color-count">
-                      <option value="16">16色 (PC-9801標準)</option>
+                      <option value="16">16色 (PC-3104標準)</option>
                       <option value="64">64色 (レトロパソコン風)</option>
-                      <option value="256" selected>256色 (PC-9821/VGA)</option>
+                      <option value="256" selected>256色 (PC-3104 V/VGA)</option>
                       <option value="0">フルカラー (モザイクのみ)</option>
                     </select>
                   </div>
@@ -220,10 +220,10 @@
                   <div class="select-wrapper">
                     <select id="palette-preset">
                       <option value="adaptive" selected>自動最適化 (画像から自動抽出)</option>
-                      <option value="pc98-system">PC-9801システムカラー (16色)</option>
-                      <option value="gameboy">ゲームボーイ風 (緑4階調)</option>
+                      <option value="pc98-system">PC-3104システムカラー (16色)</option>
+                      <option value="gameboy">GB風 (緑4階調)</option>
                       <option value="cga">CGAレトロ (4色)</option>
-                      <option value="nes">ファミリーコンピュータ風 (256色制限)</option>
+                      <option value="nes">FC風 (256色制限)</option>
                       <option value="cyberpunk">サイバーパンク・ネオン (16色)</option>
                     </select>
                   </div>
@@ -273,7 +273,7 @@
       <div class="title-bar">
         <div class="title-bar-text">
           <span class="window-icon-adg"></span>
-          PC-98 ADG Screen Maker - ADGMAKER.EXE
+          PC-3104 ADG Screen Maker - ADGMAKER.EXE
         </div>
         <div class="title-bar-controls">
           <button aria-label="Minimize" id="btn-adg-minimize"></button>
@@ -350,7 +350,7 @@
                   <span class="control-label">レイアウト:</span>
                   <div class="select-wrapper">
                     <select id="adg-layout-style">
-                      <option value="still-full" selected>スチル全画面 (PC-98風)</option>
+                      <option value="still-full" selected>スチル全画面 (PC-3104風)</option>
                       <option value="detective-command">コマンド式推理ADV (レトロ風)</option>
                     </select>
                   </div>
@@ -446,11 +446,11 @@
       <div class="taskbar-windows">
         <div class="taskbar-window-tab active" id="task-app-tab">
           <span class="window-icon"></span>
-          PC-9801 Retro Pixel Studio
+          PC-3104 Retro Pixel Studio
         </div>
         <div class="taskbar-window-tab hidden" id="task-adg-tab">
           <span class="window-icon-adg"></span>
-          PC-98 ADG Maker
+          PC-3104 ADG Maker
         </div>
       </div>
       <div class="taskbar-divider"></div>
@@ -463,7 +463,7 @@
     <!-- Start Menu Content -->
     <div class="start-menu window hidden" id="start-menu-box">
       <div class="start-menu-sidebar">
-        <div class="sidebar-text">Windows <span>98</span></div>
+        <div class="sidebar-text">Win<span>98風</span></div>
       </div>
       <div class="start-menu-items">
         <div class="start-menu-item" id="start-reset-app">
@@ -485,7 +485,7 @@
     <!-- Retro System About Modal Dialog -->
     <div class="window modal hidden" id="about-dialog">
       <div class="title-bar">
-        <div class="title-bar-text">バージョン情報 - PIC2PC98.EXE</div>
+        <div class="title-bar-text">バージョン情報 - PIC2PC3104.EXE</div>
         <div class="title-bar-controls">
           <button aria-label="Close" class="btn-modal-close"></button>
         </div>
@@ -494,10 +494,10 @@
         <div class="about-content">
           <div class="about-logo pc98-icon-art"></div>
           <div class="about-text">
-            <h3>PC-9801 Retro Pixel Studio</h3>
-            <p>バージョン 1.98 (Build 9800)</p>
+            <h3>PC-3104 Retro Pixel Studio</h3>
+            <p>バージョン 1.04 (Build 3104)</p>
             <p>HTML5 Canvas API によるレトロ1枚絵コンバータ</p>
-            <p style="margin-top: 10px;">誤差拡散法(Floyd-Steinberg)や組織的ディザリング(Bayer)、中央値カット法(Median Cut)カラー減色アルゴリズムを実装し、80年代〜90年代の日本のパソコン用アドベンチャーゲーム（PC-98等）の独特なグラフィックを再現します。</p>
+            <p style="margin-top: 10px;">誤差拡散法(Floyd-Steinberg)や組織的ディザリング(Bayer)、中央値カット法(Median Cut)カラー減色アルゴリズムを実装し、80年代〜90年代の日本のパソコン用アドベンチャーゲーム（PC-3104等）の独特なグラフィックを再現します。</p>
             <p style="margin-top: 10px; font-size: 11px; color:#555;">© 2026 Retro Computing Club. All rights reserved.</p>
           </div>
         </div>
