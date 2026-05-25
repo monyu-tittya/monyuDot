@@ -216,7 +216,19 @@ const State = {
   scanlines: false,
   monochrome: false,
 
-  currentPalette: []
+  currentPalette: [],
+
+  // ADG Maker State
+  adgSelectedId: null,
+  adgBackgroundImgData: null,
+  adgBackgroundImg: null,
+  adgDisplayedText: "",
+  adgTypewriterTimer: null,
+  adgTypewriterIndex: 0,
+  adgLoopRunning: false,
+  adgLayoutStyle: "still-full",
+  adgCommandsListText: "ばしょいどう\nはなせ\nしらべろ\nみせろ\nよべ\nスマホつかえ\nもちものみろ",
+  adgCommandCursorIndex: 0
 };
 
 // --- DOM References ---
@@ -270,7 +282,32 @@ const DOM = {
   btnDownload: document.getElementById("btn-download"),
   statusText: document.getElementById("status-text"),
   statusResolution: document.getElementById("status-resolution"),
-  statusTime: document.getElementById("status-time")
+  statusTime: document.getElementById("status-time"),
+
+  // ADG Maker Elements
+  btnSaveDisk: document.getElementById("btn-save-disk"),
+  iconAdgMaker: document.getElementById("icon-adgmaker"),
+  adgWindow: document.getElementById("adg-window"),
+  taskAdgTab: document.getElementById("task-adg-tab"),
+  adgPreviewCanvas: document.getElementById("adg-preview-canvas"),
+  adgEmptyPlaceholder: document.getElementById("adg-empty-placeholder"),
+  libraryListUl: document.getElementById("library-list-ul"),
+  btnLibraryRefresh: document.getElementById("btn-library-refresh"),
+  btnLibraryDelete: document.getElementById("btn-library-delete"),
+  adgCharName: document.getElementById("adg-char-name"),
+  adgDialogText: document.getElementById("adg-dialog-text"),
+  adgTextColor: document.getElementById("adg-text-color"),
+  adgTypewriter: document.getElementById("adg-typewriter"),
+  btnAdgPlay: document.getElementById("btn-adg-play"),
+  btnAdgDownload: document.getElementById("btn-adg-download"),
+  btnAdgGifDownload: document.getElementById("btn-adg-gif-download"),
+  menuAdgSaveGif: document.getElementById("menu-adg-save-gif"),
+  adgStatusText: document.getElementById("adg-status-text"),
+  adgStatusDisk: document.getElementById("adg-status-disk"),
+  adgLayoutStyle: document.getElementById("adg-layout-style"),
+  adgDetectiveControls: document.getElementById("adg-detective-controls"),
+  adgCommandsList: document.getElementById("adg-commands-list"),
+  adgCommandCursor: document.getElementById("adg-command-cursor"),
 };
 
 // --- Initialization ---
@@ -286,6 +323,9 @@ window.addEventListener("DOMContentLoaded", () => {
   
   // Set initial status
   updateStatus("システム起動完了。画像を選択してください。");
+  
+  // Initialize ADG Maker Extensions
+  setupADGMaker();
 });
 
 // --- System Window, Start Menu, Clock & Sound Setup ---
@@ -567,6 +607,16 @@ function setupParameters() {
     SoundFX.playClick();
     downloadResultImage();
   });
+
+  // Save to Virtual Disk Button
+  DOM.btnSaveDisk.addEventListener("click", () => {
+    saveResultToDisk();
+  });
+
+  // Save to Virtual Disk Menu Action
+  document.getElementById("menu-save-disk").addEventListener("click", () => {
+    saveResultToDisk();
+  });
 }
 
 // Debounce helper to make sliders extremely smooth
@@ -604,11 +654,11 @@ function setupImageLoading() {
         // Reset cropper parameters
         resetCrop();
         
-        // Unlock crop controls
         DOM.cropZoom.disabled = false;
         DOM.btnRotate.disabled = false;
         DOM.btnCropReset.disabled = false;
         DOM.btnDownload.disabled = false;
+        DOM.btnSaveDisk.disabled = false;
         
         // Hide placeholder and show canvases
         DOM.uploadPlaceholder.classList.add("hidden");
@@ -1247,4 +1297,701 @@ function downloadResultImage() {
   document.body.removeChild(link);
   
   updateStatus("画像の保存に成功しました！");
+}
+
+// --- VIRTUAL DISK & ADG SCREEN MAKER SYSTEM ---
+
+function saveResultToDisk() {
+  if (!State.sourceImage) return;
+
+  const dataUrl = DOM.outputCanvas.toDataURL("image/png");
+
+  try {
+    let library = JSON.parse(localStorage.getItem("pic98_library") || "[]");
+
+    // Limit to max 12 items to stay under 5MB localStorage limits
+    if (library.length >= 12) {
+      library.shift(); // remove oldest
+    }
+
+    const timestamp = new Date();
+    const timeStr = `${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`;
+    const fileId = Date.now();
+    const fileName = `STILL_${library.length + 1}.PNG`;
+
+    library.push({
+      id: fileId,
+      name: fileName,
+      data: dataUrl,
+      time: timeStr
+    });
+
+    localStorage.setItem("pic98_library", JSON.stringify(library));
+
+    updateStatus(`仮想ディスクに保存完了: ${fileName}`);
+    SoundFX.playRenderChime();
+
+    // Refresh ADG list if open
+    refreshLibraryUI();
+  } catch (e) {
+    console.error(e);
+    updateStatus("ERROR: 保存に失敗しました。容量不足の可能性があります。");
+    SoundFX.playBeepAlert();
+  }
+}
+
+function refreshLibraryUI() {
+  const library = JSON.parse(localStorage.getItem("pic98_library") || "[]");
+
+  if (library.length === 0) {
+    DOM.adgEmptyPlaceholder.classList.remove("hidden");
+    DOM.adgPreviewCanvas.classList.add("hidden");
+    DOM.libraryListUl.innerHTML = "<div style='text-align: center; color: #555; padding-top: 15px; font-size: 11px;'>空のディスク</div>";
+    DOM.btnLibraryDelete.disabled = true;
+    DOM.btnAdgDownload.disabled = true;
+    DOM.btnAdgGifDownload.disabled = true;
+    DOM.btnAdgPlay.disabled = true;
+    DOM.adgStatusDisk.textContent = "ファイル: 未選択";
+    return;
+  }
+
+  DOM.adgEmptyPlaceholder.classList.add("hidden");
+  DOM.adgPreviewCanvas.classList.remove("hidden");
+  DOM.btnAdgDownload.disabled = false;
+  DOM.btnAdgGifDownload.disabled = false;
+  DOM.btnAdgPlay.disabled = false;
+
+  DOM.libraryListUl.innerHTML = "";
+  library.forEach((item, idx) => {
+    const li = document.createElement("li");
+    li.className = "library-item";
+    
+    // Select the newly added item or previously selected item
+    if (State.adgSelectedId === item.id || (!State.adgSelectedId && idx === library.length - 1)) {
+      li.classList.add("selected");
+      State.adgSelectedId = item.id;
+      State.adgBackgroundImgData = item.data;
+      DOM.adgStatusDisk.textContent = `ファイル: ${item.name}`;
+      DOM.btnLibraryDelete.disabled = false;
+    }
+
+    li.innerHTML = `
+      <img class="library-thumb" src="${item.data}">
+      <span class="library-name">${item.name}</span>
+      <span class="library-date">${item.time}</span>
+    `;
+
+    li.addEventListener("click", () => {
+      SoundFX.playClick();
+      State.adgSelectedId = item.id;
+      State.adgBackgroundImgData = item.data;
+      DOM.btnLibraryDelete.disabled = false;
+      refreshLibraryUI();
+      loadADGBackground();
+    });
+
+    DOM.libraryListUl.appendChild(li);
+  });
+}
+
+function deleteSelectedFile() {
+  if (!State.adgSelectedId) return;
+
+  try {
+    let library = JSON.parse(localStorage.getItem("pic98_library") || "[]");
+    library = library.filter(item => item.id !== State.adgSelectedId);
+    localStorage.setItem("pic98_library", JSON.stringify(library));
+
+    State.adgSelectedId = null;
+    State.adgBackgroundImgData = null;
+    State.adgBackgroundImg = null;
+
+    SoundFX.playBeepAlert();
+    refreshLibraryUI();
+    
+    if (library.length > 0) {
+      loadADGBackground();
+    } else {
+      // Clear canvas
+      const ctx = DOM.adgPreviewCanvas.getContext("2d");
+      ctx.clearRect(0, 0, DOM.adgPreviewCanvas.width, DOM.adgPreviewCanvas.height);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function loadADGBackground() {
+  if (!State.adgBackgroundImgData) return;
+
+  const img = new Image();
+  img.onload = () => {
+    State.adgBackgroundImg = img;
+    triggerTypewriter();
+  };
+  img.src = State.adgBackgroundImgData;
+}
+
+function triggerTypewriter() {
+  if (State.adgTypewriterTimer) clearInterval(State.adgTypewriterTimer);
+  
+  const charName = DOM.adgCharName.value.trim();
+  const dialogValue = DOM.adgDialogText.value || "あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はじまっています。";
+  
+  let fullText = "";
+  if (State.adgLayoutStyle === "detective-command") {
+    // Detective ADV style: pre-formatted inline name and brackets
+    fullText = charName ? `${charName}「${dialogValue}` : dialogValue;
+  } else {
+    // PC-98 standard style: separate name plate and pure dialog text
+    fullText = dialogValue;
+  }
+
+  // If we are recording a GIF, we always use the typewriter animation!
+  const useTypewriter = State.adgIsRecordingGif ? true : DOM.adgTypewriter.checked;
+
+  if (!useTypewriter) {
+    State.adgDisplayedText = fullText;
+    State.adgTypingComplete = true;
+    drawADGComposition();
+    return;
+  }
+
+  State.adgDisplayedText = "";
+  State.adgTypewriterIndex = 0;
+  State.adgTypingComplete = false;
+
+  State.adgTypewriterTimer = setInterval(() => {
+    if (State.adgTypewriterIndex < fullText.length) {
+      const char = fullText[State.adgTypewriterIndex];
+      State.adgDisplayedText += char;
+      State.adgTypewriterIndex++;
+      
+      // Play retro 8-bit typewriter clicking synth sound!
+      if (char !== " " && char !== "\n") {
+        SoundFX.playClick();
+      }
+      
+      drawADGComposition();
+      
+      // Capture frame for GIF
+      if (State.adgIsRecordingGif) {
+        State.adgGifFrames.push(DOM.adgPreviewCanvas.toDataURL("image/png"));
+        const progress = Math.min(80, Math.round((State.adgTypewriterIndex / fullText.length) * 80));
+        DOM.adgStatusText.textContent = `GIF録画中 (タイピング): ${progress}%`;
+      }
+    } else {
+      // Typing finished
+      if (State.adgIsRecordingGif) {
+        if (State.adgBlinkFramesCount > 0) {
+          State.adgBlinkFramesCount--;
+          State.adgTypingComplete = true;
+          drawADGComposition();
+          
+          State.adgGifFrames.push(DOM.adgPreviewCanvas.toDataURL("image/png"));
+          const progress = 80 + Math.round(((10 - State.adgBlinkFramesCount) / 10) * 20);
+          DOM.adgStatusText.textContent = `GIF録画中 (カーソル点滅): ${progress}%`;
+        } else {
+          clearInterval(State.adgTypewriterTimer);
+          State.adgTypingComplete = true;
+          drawADGComposition();
+          compileADGGif();
+        }
+      } else {
+        clearInterval(State.adgTypewriterTimer);
+        State.adgTypingComplete = true;
+        drawADGComposition();
+      }
+    }
+  }, 45); // ~22 chars per second, standard retro speed
+}
+
+function drawADGComposition() {
+  const canvas = DOM.adgPreviewCanvas;
+  const ctx = canvas.getContext("2d");
+
+  // Lock canvas resolution to authentic PC-9801 resolution: 640 x 400
+  canvas.width = 640;
+  canvas.height = 400;
+
+  const textColor = DOM.adgTextColor.value;
+
+  if (State.adgLayoutStyle === "detective-command") {
+    // --- Layout 2: Classic Detective Command ADV Layout (Portopia / Okhotsk Style) ---
+    
+    // 1. Draw solid black backdrop
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, 640, 400);
+
+    // 2. Draw Bounding Frame around top-left Still image box (X=24, Y=24, W=320, H=200)
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(24, 24, 320, 200);
+
+    // Draw background pixel art still inside framed window
+    if (State.adgBackgroundImg) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(State.adgBackgroundImg, 24, 24, 320, 200);
+    } else {
+      // gray placeholder screen
+      ctx.fillStyle = "#333333";
+      ctx.fillRect(24, 24, 320, 200);
+    }
+
+    // 3. Draw Command Menu list on the top-right
+    const commandsText = DOM.adgCommandsList.value || "ばしょいどう\nはなせ\nしらべろ\nみせろ\nよべ\nスマホつかえ\nもちものみろ";
+    const commands = commandsText.split("\n").map(c => c.trim()).filter(c => c.length > 0);
+    
+    ctx.font = "16px 'DotGothic16', monospace";
+    ctx.fillStyle = "#ffffff";
+    ctx.textBaseline = "top";
+    
+    const startMenuX = 370;
+    const startMenuY = 28;
+    const menuSpacing = 24;
+    const activeCursorIndex = parseInt(DOM.adgCommandCursor.value) || 0;
+
+    commands.forEach((cmd, idx) => {
+      if (idx < 7) { // limit to 7 lines max
+        const lineY = startMenuY + (idx * menuSpacing);
+        if (idx === activeCursorIndex) {
+          // Draw active selector pointer "▶" next to active item
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText("▶", startMenuX, lineY);
+          ctx.fillText(cmd, startMenuX + 20, lineY);
+        } else {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(cmd, startMenuX + 20, lineY);
+        }
+      }
+    });
+
+    // 4. Draw Bottom Dialogue box (X=24, Y=244, W=592, H=132)
+    // Custom rounded rect border path
+    const drawRoundedRect = (c, x, y, width, height, r) => {
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.lineTo(x + width - r, y);
+      c.quadraticCurveTo(x + width, y, x + width, y + r);
+      c.lineTo(x + width, y + height - r);
+      c.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      c.lineTo(x + r, y + height);
+      c.quadraticCurveTo(x, y + height, x, y + height - r);
+      c.lineTo(x, y + r);
+      c.quadraticCurveTo(x, y, x + r, y);
+      c.closePath();
+    };
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    drawRoundedRect(ctx, 24, 244, 592, 132, 8);
+    ctx.stroke();
+
+    // 5. Draw Dialogue inside bottom box (X=40, Y=262)
+    ctx.font = "15px 'DotGothic16', monospace";
+    ctx.fillStyle = textColor;
+    ctx.textBaseline = "top";
+
+    const lines = State.adgDisplayedText.split("\n");
+    const lineSpacing = 24;
+    const startX = 40;
+    const startY = 262;
+
+    lines.forEach((line, idx) => {
+      if (idx < 4) { // Draw up to 4 lines inside rounded rect
+        ctx.fillText(line, startX, startY + (idx * lineSpacing));
+      }
+    });
+
+    // 6. Draw Flashing cursor triangle ▼ at the bottom-right corner of bottom box
+    if (State.adgTypingComplete) {
+      if (Math.floor(Date.now() / 300) % 2 === 0) {
+        ctx.fillStyle = textColor;
+        ctx.beginPath();
+        ctx.moveTo(580, 344);
+        ctx.lineTo(592, 344);
+        ctx.lineTo(586, 352);
+        ctx.fill();
+      }
+    }
+
+  } else {
+    // --- Layout 1: Classic Full-Screen Slide Layout (PC-98 Standard) ---
+    
+    // 1. Draw Background
+    if (State.adgBackgroundImg) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(State.adgBackgroundImg, 0, 0, 640, 400);
+    } else {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, 640, 400);
+    }
+
+    // 2. Draw Dialogue Textbox Overlay at the bottom
+    ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
+    ctx.fillRect(16, 260, 608, 124);
+
+    // Outer Gray border
+    ctx.strokeStyle = "#808080";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(16, 260, 608, 124);
+
+    // Inner White border
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(18, 262, 604, 120);
+
+    // 3. Draw Character Name plate
+    const charName = DOM.adgCharName.value.trim();
+    if (charName) {
+      ctx.font = "bold 15px 'DotGothic16', monospace";
+      ctx.fillStyle = "#00ffff"; // Classic PC-98 cyan name plate color
+      ctx.fillText(`【${charName}】`, 32, 292);
+    }
+
+    // 4. Draw Dialogue lines
+    ctx.font = "15px 'DotGothic16', monospace";
+    ctx.fillStyle = textColor;
+    ctx.textBaseline = "top";
+
+    const lines = State.adgDisplayedText.split("\n");
+    const lineSpacing = 24;
+    const startX = 32;
+    const startY = charName ? 306 : 288; // shift up slightly if no name
+
+    lines.forEach((line, idx) => {
+      if (idx < 3) { // Draw up to 3 lines max
+        ctx.fillText(line, startX, startY + (idx * lineSpacing));
+      }
+    });
+
+    // 5. Draw Flashing cursor triangle ▼ when typing is completed
+    if (State.adgTypingComplete) {
+      if (Math.floor(Date.now() / 300) % 2 === 0) {
+        ctx.fillStyle = textColor;
+        ctx.beginPath();
+        ctx.moveTo(590, 358);
+        ctx.lineTo(602, 358);
+        ctx.lineTo(596, 366);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+// Composition loop to keep the cursor blinking smoothly in real-time
+function startADGAnimationLoop() {
+  if (State.adgLoopRunning) return;
+  State.adgLoopRunning = true;
+
+  const loop = () => {
+    if (DOM.adgWindow.classList.contains("hidden") || DOM.adgWindow.classList.contains("minimized")) {
+      State.adgLoopRunning = false;
+      return;
+    }
+    
+    // Only redraw for blinking if typing is complete and window is visible
+    if (State.adgTypingComplete) {
+      drawADGComposition();
+    }
+    
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+
+function setupADGMaker() {
+  // Overlapping Focus Window manager
+  const focusApp = () => {
+    DOM.appWindow.classList.add("active");
+    DOM.adgWindow.classList.remove("active");
+    DOM.taskAppTab.classList.add("active");
+    DOM.taskAdgTab.classList.remove("active");
+  };
+
+  const focusAdg = () => {
+    DOM.adgWindow.classList.add("active");
+    DOM.appWindow.classList.remove("active");
+    DOM.taskAdgTab.classList.add("active");
+    DOM.taskAppTab.classList.remove("active");
+    refreshLibraryUI();
+    loadADGBackground();
+    startADGAnimationLoop();
+  };
+
+  DOM.appWindow.addEventListener("mousedown", focusApp);
+  DOM.adgWindow.addEventListener("mousedown", focusAdg);
+
+  // App Shortcut Icon setup
+  DOM.iconAdgMaker.addEventListener("click", () => {
+    SoundFX.playClick();
+    DOM.adgWindow.classList.remove("hidden");
+    DOM.adgWindow.classList.remove("minimized");
+    DOM.taskAdgTab.classList.remove("hidden");
+    focusAdg();
+  });
+
+  // Taskbar Tab setup
+  DOM.taskAdgTab.addEventListener("click", () => {
+    SoundFX.playClick();
+    if (DOM.adgWindow.classList.contains("minimized")) {
+      DOM.adgWindow.classList.remove("minimized");
+      focusAdg();
+    } else {
+      if (DOM.adgWindow.classList.contains("active")) {
+        DOM.adgWindow.classList.add("minimized");
+        DOM.taskAdgTab.classList.remove("active");
+      } else {
+        focusAdg();
+      }
+    }
+  });
+
+  // Title bar drag for ADG Maker window
+  let isDraggingWindow = false;
+  let dragOffset = { x: 0, y: 0 };
+  const titleBar = DOM.adgWindow.querySelector(".title-bar");
+
+  titleBar.addEventListener("mousedown", (e) => {
+    if (e.target.tagName === "BUTTON") return;
+    isDraggingWindow = true;
+    dragOffset.x = e.clientX - DOM.adgWindow.offsetLeft;
+    dragOffset.y = e.clientY - DOM.adgWindow.offsetTop;
+    focusAdg();
+    titleBar.style.cursor = "grabbing";
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!isDraggingWindow) return;
+    DOM.adgWindow.style.left = `${e.clientX - dragOffset.x}px`;
+    DOM.adgWindow.style.top = `${e.clientY - dragOffset.y}px`;
+    DOM.adgWindow.style.transform = "none";
+  });
+
+  document.addEventListener("mouseup", () => {
+    isDraggingWindow = false;
+    titleBar.style.cursor = "grab";
+  });
+
+  // ADG Window buttons
+  document.getElementById("btn-adg-minimize").addEventListener("click", (e) => {
+    SoundFX.playClick();
+    DOM.adgWindow.classList.add("minimized");
+    DOM.taskAdgTab.classList.remove("active");
+    e.stopPropagation();
+  });
+
+  document.getElementById("btn-adg-close").addEventListener("click", (e) => {
+    SoundFX.playClick();
+    DOM.adgWindow.classList.add("hidden");
+    DOM.taskAdgTab.classList.add("hidden");
+    e.stopPropagation();
+  });
+
+  document.getElementById("menu-adg-close").addEventListener("click", () => {
+    SoundFX.playClick();
+    DOM.adgWindow.classList.add("hidden");
+    DOM.taskAdgTab.classList.add("hidden");
+  });
+
+  document.getElementById("menu-adg-clear").addEventListener("click", () => {
+    SoundFX.playClick();
+    DOM.adgDialogText.value = "";
+    triggerTypewriter();
+  });
+
+  // Controls bindings
+  DOM.btnLibraryRefresh.addEventListener("click", () => {
+    SoundFX.playClick();
+    refreshLibraryUI();
+    loadADGBackground();
+  });
+
+  DOM.btnLibraryDelete.addEventListener("click", () => {
+    deleteSelectedFile();
+  });
+
+  DOM.adgCharName.addEventListener("input", () => {
+    drawADGComposition();
+  });
+
+  DOM.adgDialogText.addEventListener("input", () => {
+    // If not typewriter, render instantly on type
+    if (!DOM.adgTypewriter.checked) {
+      State.adgDisplayedText = DOM.adgDialogText.value;
+      State.adgTypingComplete = true;
+      drawADGComposition();
+    }
+  });
+
+  DOM.adgTextColor.addEventListener("change", () => {
+    SoundFX.playClick();
+    drawADGComposition();
+  });
+
+  DOM.adgLayoutStyle.addEventListener("change", (e) => {
+    SoundFX.playClick();
+    State.adgLayoutStyle = e.target.value;
+    if (State.adgLayoutStyle === "detective-command") {
+      DOM.adgDetectiveControls.classList.remove("hidden");
+    } else {
+      DOM.adgDetectiveControls.classList.add("hidden");
+    }
+    triggerTypewriter();
+  });
+
+  DOM.adgCommandsList.addEventListener("input", () => {
+    drawADGComposition();
+  });
+
+  DOM.adgCommandCursor.addEventListener("change", () => {
+    SoundFX.playClick();
+    drawADGComposition();
+  });
+
+  DOM.btnAdgPlay.addEventListener("click", () => {
+    SoundFX.playClick();
+    triggerTypewriter();
+  });
+
+  // ADG Synthesizer trigger on tab clicks
+  const adgTabs = DOM.adgWindow.querySelectorAll(".tab");
+  const adgPanes = DOM.adgWindow.querySelectorAll(".tab-pane");
+
+  adgTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      SoundFX.playTabClick();
+      const tabId = tab.dataset.tab;
+      
+      adgTabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      adgPanes.forEach(pane => {
+        pane.classList.remove("active");
+        if (pane.id === tabId) {
+          pane.classList.add("active");
+        }
+      });
+    });
+  });
+
+  // ADG Screen Exporter PNG
+  DOM.btnAdgDownload.addEventListener("click", () => {
+    SoundFX.playClick();
+    downloadADGImage();
+  });
+  
+  document.getElementById("menu-adg-save").addEventListener("click", () => {
+    SoundFX.playClick();
+    downloadADGImage();
+  });
+
+  // ADG Screen Exporter GIF
+  DOM.btnAdgGifDownload.addEventListener("click", () => {
+    startADGGifRecording();
+  });
+
+  document.getElementById("menu-adg-save-gif").addEventListener("click", () => {
+    startADGGifRecording();
+  });
+}
+
+function downloadADGImage() {
+  if (!State.adgBackgroundImg) return;
+
+  const canvas = DOM.adgPreviewCanvas;
+  
+  // Upscale composited ADG window by 2x for sharp full visual novel 1280x800 resolution!
+  const upscaleCanvas = document.createElement("canvas");
+  upscaleCanvas.width = 1280;
+  upscaleCanvas.height = 800;
+  
+  const ctx = upscaleCanvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  ctx.mozImageSmoothingEnabled = false;
+  ctx.webkitImageSmoothingEnabled = false;
+  
+  ctx.drawImage(canvas, 0, 0, 1280, 800);
+  
+  const link = document.createElement("a");
+  link.download = `pc98_adg_${Date.now()}.png`;
+  link.href = upscaleCanvas.toDataURL("image/png");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  DOM.adgStatusText.textContent = "アドベンチャー画像の保存に成功しました！";
+}
+
+function enableADGButtons(enable) {
+  DOM.btnAdgPlay.disabled = !enable;
+  DOM.btnAdgDownload.disabled = !enable;
+  DOM.btnAdgGifDownload.disabled = !enable;
+  DOM.adgCharName.disabled = !enable;
+  DOM.adgDialogText.disabled = !enable;
+  DOM.adgTextColor.disabled = !enable;
+  DOM.btnLibraryRefresh.disabled = !enable;
+  DOM.btnLibraryDelete.disabled = !enable;
+}
+
+function startADGGifRecording() {
+  if (!State.adgBackgroundImg) {
+    SoundFX.playBeepAlert();
+    return;
+  }
+  
+  SoundFX.playClick();
+  State.adgIsRecordingGif = true;
+  State.adgGifFrames = [];
+  State.adgBlinkFramesCount = 10;
+  
+  DOM.adgStatusText.textContent = "GIF録画準備中...";
+  enableADGButtons(false);
+  
+  // Trigger typewriter from character 0 for recording!
+  triggerTypewriter();
+}
+
+function compileADGGif() {
+  DOM.adgStatusText.textContent = "GIFエンコード中 (処理しています...)";
+  
+  if (typeof gifshot === "undefined") {
+    console.error("gifshot is not loaded!");
+    DOM.adgStatusText.textContent = "ERROR: gifshotライブラリがロードされていません。";
+    SoundFX.playBeepAlert();
+    State.adgIsRecordingGif = false;
+    State.adgGifFrames = [];
+    enableADGButtons(true);
+    return;
+  }
+  
+  gifshot.createGIF({
+    images: State.adgGifFrames,
+    gifWidth: 640,
+    gifHeight: 400,
+    interval: 0.045, // 45ms per frame matching typewriter delay
+    numFrames: State.adgGifFrames.length,
+    sampleInterval: 10,
+    numWorkers: 2
+  }, function(obj) {
+    if (!obj.error) {
+      const link = document.createElement("a");
+      link.download = `pc98_adg_animation_${Date.now()}.gif`;
+      link.href = obj.image;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      DOM.adgStatusText.textContent = "GIFアニメの保存に成功しました！";
+      SoundFX.playRenderChime();
+    } else {
+      console.error(obj.error);
+      DOM.adgStatusText.textContent = "ERROR: GIF生成中にエラーが発生しました。";
+      SoundFX.playBeepAlert();
+    }
+    
+    State.adgIsRecordingGif = false;
+    State.adgGifFrames = [];
+    enableADGButtons(true);
+  });
 }

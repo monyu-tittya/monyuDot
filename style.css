@@ -108,8 +108,22 @@ html, body {
   left: 20px;
   top: 190px;
 }
+#icon-adgmaker {
+  left: 20px;
+  top: 275px;
+}
 
 /* Pixel art SVGs for Desktop Icons */
+.adgmaker-icon-art {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='4' width='24' height='18' fill='%23ffffff' stroke='%23000' stroke-width='2'/><polygon points='8,22 8,28 14,22' fill='%23ffffff' stroke='%23000' stroke-width='2'/><line x1='8' y1='21' x2='12' y2='21' stroke='%23ffffff' stroke-width='3'/><rect x='8' y='8' width='12' height='2' fill='%2300f'/><rect x='8' y='12' width='16' height='2' fill='%2300f'/></svg>");
+}
+.window-icon-adg {
+  width: 16px;
+  height: 16px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1' y='2' width='14' height='10' fill='%23fff' stroke='%23000'/><rect x='3' y='4' width='6' height='1' fill='%2300f'/><rect x='3' y='6' width='10' height='1' fill='%2300f'/></svg>");
+}
 .pc98-icon-art {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='6' width='28' height='18' fill='%23e0e0e0' stroke='%23000' stroke-width='2'/><rect x='4' y='8' width='24' height='12' fill='%23000'/><rect x='6' y='24' width='20' height='3' fill='%23808080' stroke='%23000' stroke-width='2'/><path d='M10 27 L22 27 L24 29 L8 29 Z' fill='%23a0a0a0' stroke='%23000' stroke-width='2'/><rect x='8' y='12' width='16' height='4' fill='%2300ff00' opacity='0.7'/></svg>");
 }
@@ -378,8 +392,9 @@ button[aria-label="Close"]::after { transform: rotate(-45deg); }
   padding: 4px;
 }
 
-/* Canvas displaying the image */
 #output-canvas {
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -1175,4 +1190,116 @@ input[type="radio"], input[type="checkbox"] {
   .status-bar {
     display: none; /* Hide status bar to save precious vertical height on mobile screens */
   }
+}
+
+/* ==========================================================================
+   ADG Maker Extensions (LocalStorage Library & Canvas Overlay)
+   ========================================================================== */
+
+.library-container {
+  height: 100px;
+  overflow-y: auto;
+  background-color: #fff;
+  padding: 2px;
+  width: 100%;
+}
+
+.library-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.library-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-bottom: 1px solid #dfdfdf;
+  user-select: none;
+}
+
+.library-item:hover {
+  background-color: #dfdfdf;
+}
+
+.library-item.selected {
+  background-color: #000080;
+  color: #fff;
+}
+
+.library-thumb {
+  width: 32px;
+  height: 24px;
+  object-fit: cover;
+  border: 1px solid #000;
+  image-rendering: pixelated;
+  background-color: #333;
+}
+
+.library-name {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  font-family: monospace;
+}
+
+.library-date {
+  font-size: 9px;
+  color: #666;
+}
+
+.library-item.selected .library-date {
+  color: #ccc;
+}
+
+.retro-input {
+  font-family: var(--font-sys);
+  font-size: 12px;
+  padding: 3px 6px;
+  background-color: #fff;
+  border: 2px solid;
+  border-top-color: var(--win-dark-gray);
+  border-left-color: var(--win-dark-gray);
+  border-right-color: var(--win-white);
+  border-bottom-color: var(--win-white);
+  box-shadow: inset 1px 1px 0px var(--win-black);
+  outline: none;
+}
+
+.retro-textarea {
+  font-family: var(--font-retro);
+  font-size: 12px;
+  padding: 4px 6px;
+  background-color: #fff;
+  border: 2px solid;
+  border-top-color: var(--win-dark-gray);
+  border-left-color: var(--win-dark-gray);
+  border-right-color: var(--win-white);
+  border-bottom-color: var(--win-white);
+  box-shadow: inset 1px 1px 0px var(--win-black);
+  outline: none;
+  line-height: 1.4;
+}
+
+#adg-preview-canvas {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  display: block;
+}
+
+/* Z-Index Active Overlapping and positions */
+.window {
+  z-index: 100;
+}
+.window.active {
+  z-index: 110;
 }

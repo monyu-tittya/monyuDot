@@ -31,6 +31,11 @@
       <div class="icon-label">ごみ箱</div>
     </div>
 
+    <div class="desktop-icon" id="icon-adgmaker" role="button" tabindex="0">
+      <div class="icon-image adgmaker-icon-art"></div>
+      <div class="icon-label">ADG Maker</div>
+    </div>
+
     <!-- Main Window: PC-98 Pixel Converter -->
     <div class="window active" id="app-window">
       <!-- Title bar -->
@@ -50,8 +55,9 @@
       <div class="menu-bar">
         <div class="menu-item" tabindex="0">ファイル(<span class="underline">F</span>)
           <div class="dropdown-menu">
-            <div class="menu-entry" id="menu-upload">開く(<span class="underline">O</span>)...</div>
-            <div class="menu-entry" id="menu-save">保存(<span class="underline">S</span>)</div>
+            <div class="menu-entry" id="menu-upload">画像を開く(<span class="underline">O</span>)...</div>
+            <div class="menu-entry" id="menu-save">PNGとして保存(<span class="underline">S</span>)</div>
+            <div class="menu-entry" id="menu-save-disk">仮想ディスクへ保存(<span class="underline">D</span>)</div>
             <div class="separator"></div>
             <div class="menu-entry" id="menu-reset">初期化(<span class="underline">R</span>)</div>
           </div>
@@ -238,10 +244,14 @@
           <div class="action-buttons-row">
             <button id="btn-download" class="button-retro primary" disabled>
               <span class="icon-floppy"></span>
-              PNG画像を保存
+              PNG保存
+            </button>
+            <button id="btn-save-disk" class="button-retro" disabled>
+              <span class="icon-floppy"></span>
+              仮想ディスク保存
             </button>
             <label for="image-input-sub" class="button-retro text-center" style="cursor: pointer;">
-              他の画像を開く
+              他を開く
             </label>
             <input type="file" id="image-input-sub" accept="image/*" class="hidden">
           </div>
@@ -257,6 +267,175 @@
       </div>
     </div>
 
+    <!-- Secondary Window: PC-98 ADG Maker -->
+    <div class="window hidden" id="adg-window">
+      <!-- Title bar -->
+      <div class="title-bar">
+        <div class="title-bar-text">
+          <span class="window-icon-adg"></span>
+          PC-98 ADG Screen Maker - ADGMAKER.EXE
+        </div>
+        <div class="title-bar-controls">
+          <button aria-label="Minimize" id="btn-adg-minimize"></button>
+          <button aria-label="Maximize" id="btn-adg-maximize"></button>
+          <button aria-label="Close" id="btn-adg-close"></button>
+        </div>
+      </div>
+
+      <!-- Menu bar -->
+      <div class="menu-bar">
+        <div class="menu-item" tabindex="0">ファイル(<span class="underline">F</span>)
+          <div class="dropdown-menu">
+            <div class="menu-entry" id="menu-adg-save">PNGとして保存(<span class="underline">S</span>)</div>
+            <div class="menu-entry" id="menu-adg-save-gif">GIFアニメとして保存(<span class="underline">G</span>)</div>
+            <div class="separator"></div>
+            <div class="menu-entry" id="menu-adg-close">閉じる(<span class="underline">C</span>)</div>
+          </div>
+        </div>
+        <div class="menu-item" tabindex="0">編集(<span class="underline">E</span>)
+          <div class="dropdown-menu">
+            <div class="menu-entry" id="menu-adg-clear">テキスト全消去</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Window Body -->
+      <div class="window-body">
+        
+        <!-- Workspace containing ADG Preview Canvas and Editor -->
+        <div class="workspace-section">
+          <!-- ADG Preview Frame -->
+          <div class="preview-container inset-bevel">
+            <canvas id="adg-preview-canvas"></canvas>
+            
+            <!-- Library empty placeholder -->
+            <div id="adg-empty-placeholder" class="placeholder-screen hidden">
+              <div class="retro-display-logo">DISK EMPTY</div>
+              <div class="placeholder-text">仮想ディスクにドット絵が保存されていません。<br>Pixel Studioアプリで画像を変換後、<br>「仮想ディスクへ保存」を実行してください。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls / Inputs -->
+        <div class="control-section">
+          <ul class="tabs" role="tablist">
+            <li class="tab active" role="tab" data-tab="tab-adg-image" tabindex="0">背景選択</li>
+            <li class="tab" role="tab" data-tab="tab-adg-text" tabindex="0">セリフ編集</li>
+          </ul>
+
+          <div class="tab-content inset-bevel">
+            
+            <!-- Tab 1: Select saved image from library -->
+            <div id="tab-adg-image" class="tab-pane active">
+              <div class="control-group">
+                <label class="group-title">仮想ディスク内ファイルリスト</label>
+                <div class="help-desc">保存されたドット絵スチルを選択してください。</div>
+                <div class="library-container inset-bevel">
+                  <ul id="library-list-ul" class="library-list">
+                    <!-- Dynamic items will appear here -->
+                  </ul>
+                </div>
+                <div class="control-row" style="margin-top: 6px;">
+                  <button id="btn-library-refresh" class="button-retro">ディスク再読込</button>
+                  <button id="btn-library-delete" class="button-retro" style="color: #a00;" disabled>ファイル削除</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Dialogue editor -->
+            <div id="tab-adg-text" class="tab-pane">
+              <div class="control-group">
+                
+                <div class="control-row">
+                  <span class="control-label">レイアウト:</span>
+                  <div class="select-wrapper">
+                    <select id="adg-layout-style">
+                      <option value="still-full" selected>スチル全画面 (PC-98風)</option>
+                      <option value="detective-command">コマンド式推理ADV (レトロ風)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <hr class="retro-hr">
+
+                <div class="control-row">
+                  <span class="control-label">名前:</span>
+                  <input type="text" id="adg-char-name" class="retro-input" value="ケン" placeholder="名前" style="flex: 1;">
+                </div>
+                
+                <div class="control-row" style="align-items: flex-start;">
+                  <span class="control-label" style="margin-top: 4px;">セリフ:</span>
+                  <textarea id="adg-dialog-text" class="retro-textarea" placeholder="ここにセリフを入力してください。" style="flex: 1; height: 50px; resize: none;">あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はじまっています。</textarea>
+                </div>
+
+                <div class="control-row">
+                  <span class="control-label">文字色:</span>
+                  <div class="select-wrapper">
+                    <select id="adg-text-color">
+                      <option value="#ffffff" selected>白 (標準会話)</option>
+                      <option value="#00ffff">水色 (心の声・ナレ)</option>
+                      <option value="#ffff00">黄色 (システム・強調)</option>
+                      <option value="#00ff00">緑 (端末ログ)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div id="adg-detective-controls" class="hidden">
+                  <hr class="retro-hr">
+                  <div class="control-row" style="align-items: flex-start; margin-bottom: 8px;">
+                    <span class="control-label" style="margin-top: 4px;">コマンド群:</span>
+                    <textarea id="adg-commands-list" class="retro-textarea" placeholder="コマンド群 (1行に1項目)" style="flex: 1; height: 52px; resize: none; font-family: monospace;">ばしょいどう&#13;&#10;はなせ&#13;&#10;しらべろ&#13;&#10;みせろ&#13;&#10;よべ&#13;&#10;スマホつかえ&#13;&#10;もちものみろ</textarea>
+                  </div>
+                  <div class="control-row">
+                    <span class="control-label">指し位置:</span>
+                    <div class="select-wrapper">
+                      <select id="adg-command-cursor">
+                        <option value="0" selected>1行目</option>
+                        <option value="1">2行目</option>
+                        <option value="2">3行目</option>
+                        <option value="3">4行目</option>
+                        <option value="4">5行目</option>
+                        <option value="5">6行目</option>
+                        <option value="6">7行目</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="control-row option-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="adg-typewriter" checked>
+                    <span>カタカタ再生演出</span>
+                  </label>
+                  <button id="btn-adg-play" class="button-retro" style="margin-left: auto;">セリフ再生</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="action-buttons-row">
+            <button id="btn-adg-download" class="button-retro primary" disabled>
+              <span class="icon-floppy"></span>
+              PNG保存
+            </button>
+            <button id="btn-adg-gif-download" class="button-retro" disabled>
+              <span class="icon-disk-drive"></span>
+              GIFアニメ保存
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Window Status Bar -->
+      <div class="status-bar">
+        <p class="status-bar-field" id="adg-status-text">ADGMAKER.EXE 起動完了</p>
+        <p class="status-bar-field" id="adg-status-disk" style="flex: 1.5; text-align: center;">ファイル: 未選択</p>
+      </div>
+    </div>
+
     <!-- Start Menu & Taskbar -->
     <div id="taskbar">
       <button class="start-button" id="btn-start">
@@ -268,6 +447,10 @@
         <div class="taskbar-window-tab active" id="task-app-tab">
           <span class="window-icon"></span>
           PC-9801 Retro Pixel Studio
+        </div>
+        <div class="taskbar-window-tab hidden" id="task-adg-tab">
+          <span class="window-icon-adg"></span>
+          PC-98 ADG Maker
         </div>
       </div>
       <div class="taskbar-divider"></div>
@@ -326,6 +509,8 @@
 
   </div>
 
+  <!-- GIF Recorder Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
   <!-- Web Audio API Retro Sound Effects Engine -->
   <script src="app.js"></script>
 </body>
