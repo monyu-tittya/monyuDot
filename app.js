@@ -2259,6 +2259,23 @@ function showExportPreview(src) {
       finalSrc = dataURLtoBlobURL(src);
     }
     DOM.exportPreviewImg.src = finalSrc;
+
+    // Setup "Open in New Tab" helper link for mobile browsers (especially Chrome/Safari on iOS)
+    const btnOpenNewTab = document.getElementById("btn-export-open-new-tab");
+    if (btnOpenNewTab) {
+      if (finalSrc) {
+        btnOpenNewTab.href = finalSrc;
+        btnOpenNewTab.style.display = "inline-block";
+        if (src.startsWith("data:image/gif")) {
+          btnOpenNewTab.download = `pc3104_adg_animation_${Date.now()}.gif`;
+        } else {
+          btnOpenNewTab.download = `pc3104_adg_${Date.now()}.png`;
+        }
+      } else {
+        btnOpenNewTab.style.display = "none";
+      }
+    }
+
     DOM.exportDialog.classList.remove("hidden");
   }
 }
