@@ -1927,15 +1927,15 @@ function drawADGComposition() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
     ctx.fillRect(0, 0, 640, 480);
 
-    // 3. Draw Dialogue lines spanning the full screen
+    // 3. Draw Dialogue lines spanning the full screen (Authentic large font SFC style)
     const lines = State.adgDisplayedText.split("\n");
-    const lineSpacing = 28; // Taller line spacing for readable paragraphs
-    const startX = 40;
-    const startY = 48;
+    const lineSpacing = 36; // Larger line spacing for comfortable reading
+    const startX = 48;
+    const startY = 54;
 
     lines.forEach((line, idx) => {
-      if (idx < 14) { // Draw up to 14 lines max
-        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "15px 'DotGothic16', monospace", textColor);
+      if (idx < 10) { // Limit to 10 lines max for classic spacious look
+        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "22px 'DotGothic16', monospace", textColor);
       }
     });
 
