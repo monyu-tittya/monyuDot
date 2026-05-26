@@ -1730,7 +1730,29 @@ function triggerTypewriter() {
   let fullText = "";
   if (State.adgLayoutStyle === "detective-command" || State.adgLayoutStyle === "sound-novel" || State.adgLayoutStyle === "gameboy") {
     // Detective ADV, Sound Novel, and Gameboy style: pre-formatted inline name and brackets
-    fullText = charName ? `${charName}「${dialogValue}」` : dialogValue;
+    // If the dialogue value itself starts with a line containing a tag like [XL] or [L], 
+    // prepending name would break line.startsWith("[XL]") on the very first line!
+    // To solve this, we parse the lines of dialogValue and prepend the name correctly.
+    if (charName) {
+      const dialogLines = dialogValue.split("\n");
+      if (dialogLines.length > 0) {
+        const firstLine = dialogLines[0];
+        if (firstLine.startsWith("[XL]")) {
+          dialogLines[0] = `[XL]${charName}「${firstLine.slice(4)}`; // keep tag at absolute start!
+        } else if (firstLine.startsWith("[L]")) {
+          dialogLines[0] = `[L]${charName}「${firstLine.slice(3)}`;
+        } else {
+          dialogLines[0] = `${charName}「${firstLine}`;
+        }
+        // Append closing bracket to the very end of dialogue
+        dialogLines[dialogLines.length - 1] = dialogLines[dialogLines.length - 1] + "」";
+        fullText = dialogLines.join("\n");
+      } else {
+        fullText = `${charName}「」`;
+      }
+    } else {
+      fullText = dialogValue;
+    }
   } else {
     // PC-3104 standard style: separate name plate and pure dialog text
     fullText = dialogValue;
@@ -1873,15 +1895,39 @@ function drawPixelatedText(ctx, text, x, y, font, color) {
   ctx.drawImage(tempCanvas, x, y);
 }
 
-// Convert background images to Gameboy green 4-color tones on-the-fly
+// Convert background images to Gameboy green 4-color tones on-the-fly preserving original aspect ratio
 function drawGameboyImage(ctx, img, dx, dy, dw, dh) {
-  const tempCanvas = document.createElement("canvas");
-  tempCanvas.width = 160;
-  tempCanvas.height = 144;
-  const tempCtx = tempCanvas.getContext("2d");
-  tempCtx.drawImage(img, 0, 0, 160, 144);
+  // Original aspect ratio of img
+  const imgAspect = img.width / img.height;
   
-  const imgData = tempCtx.getImageData(0, 0, 160, 144);
+  // Calculate size to fit inside (dw, dh) while preserving aspect ratio
+  let targetW = dw;
+  let targetH = dh;
+  
+  if (imgAspect > (dw / dh)) {
+    // Image is wider than container
+    targetH = dw / imgAspect;
+  } else {
+    // Image is taller than container
+    targetW = dh * imgAspect;
+  }
+  
+  // Center alignment inside (dx, dy, dw, dh)
+  const targetX = dx + (dw - targetW) / 2;
+  const targetY = dy + (dh - targetH) / 2;
+
+  // Let's create a temporary canvas with exact pixel scale
+  const tempW = Math.round(targetW);
+  const tempH = Math.round(targetH);
+  if (tempW <= 0 || tempH <= 0) return;
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = tempW;
+  tempCanvas.height = tempH;
+  const tempCtx = tempCanvas.getContext("2d");
+  tempCtx.drawImage(img, 0, 0, tempW, tempH);
+  
+  const imgData = tempCtx.getImageData(0, 0, tempW, tempH);
   const data = imgData.data;
   
   const gbColors = [
@@ -1896,7 +1942,6 @@ function drawGameboyImage(ctx, img, dx, dy, dw, dh) {
     const g = data[i+1];
     const b = data[i+2];
     
-    // Grayscale lightness mapping
     const lightness = 0.299 * r + 0.587 * g + 0.114 * b;
     
     let colorIdx = 3;
@@ -1916,8 +1961,12 @@ function drawGameboyImage(ctx, img, dx, dy, dw, dh) {
   
   tempCtx.putImageData(imgData, 0, 0);
   
+  // Fill the container background with the darkest green first to act as a matte
+  ctx.fillStyle = "#0f380f";
+  ctx.fillRect(dx, dy, dw, dh);
+  
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(tempCanvas, dx, dy, dw, dh);
+  ctx.drawImage(tempCanvas, targetX, targetY, targetW, targetH);
 }
 
 function drawADGComposition() {
@@ -2264,86 +2313,139 @@ function drawADGComposition() {
         ctx.fill();
       }
     }
+  }
 
-    // --- Environment / Weather Effect Visual Overlays ---
-    if (State.adgWeatherEffect === "rain") {
-      ctx.lineWidth = 1;
-      if (State.adgLayoutStyle === "gameboy") {
-        // Draw inside Gameboy screen only
-        ctx.strokeStyle = "rgba(15, 56, 15, 0.4)"; // Gameboy dark green rain
-        ctx.save();
+  // --- Environment / Weather Effect Visual Overlays (Rendered on top of all layouts) ---
+  if (State.adgWeatherEffect === "rain") {
+    if (State.adgLayoutStyle === "gameboy") {
+      // Draw inside Gameboy active screen area only (X=136, Y=54, W=368, H=294)
+      ctx.strokeStyle = "rgba(15, 56, 15, 0.75)";
+      ctx.lineWidth = 1.5;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(136, 54, 368, 294);
+      ctx.clip();
+      for (let i = 0; i < 20; i++) {
+        const seed = Math.sin(i * 123.45 + Date.now() / 150);
+        const x = 136 + (Math.abs(seed * 368) % 368);
+        const y = 54 + ((Math.abs(seed * 48271) + (Date.now() / 2) % 294) % 294);
         ctx.beginPath();
-        ctx.rect(136, 54, 368, 294);
-        ctx.clip();
-        for (let i = 0; i < 20; i++) {
-          const seed = Math.sin(i * 123.45 + Date.now() / 150);
-          const x = 136 + (Math.abs(seed * 368) % 368);
-          const y = 54 + ((Math.abs(seed * 48271) + (Date.now() / 2) % 294) % 294);
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x - 1, y + 10);
-          ctx.stroke();
-        }
-        ctx.restore();
-      } else {
-        // Full screen rain
-        ctx.strokeStyle = "rgba(174, 194, 224, 0.35)";
-        for (let i = 0; i < 40; i++) {
-          const seed = Math.sin(i * 123.45 + Date.now() / 150);
-          const x = Math.abs(seed * 640) % 640;
-          const y = (Math.abs(seed * 48271) + (Date.now() / 2) % 480) % 480;
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x - 2, y + 14);
-          ctx.stroke();
-        }
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 1.5, y + 12);
+        ctx.stroke();
       }
-    } else if (State.adgWeatherEffect === "blizzard") {
-      if (State.adgLayoutStyle === "gameboy") {
-        // Draw inside Gameboy screen only
-        ctx.fillStyle = "rgba(139, 172, 15, 0.8)"; // Gameboy light green snow
-        ctx.save();
+      ctx.restore();
+    } else if (State.adgLayoutStyle === "detective-command") {
+      // Draw inside top-left Still image box only (X=24, Y=24, W=320, H=240)
+      ctx.strokeStyle = "rgba(180, 210, 255, 0.75)";
+      ctx.lineWidth = 1.5;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(24, 24, 320, 240);
+      ctx.clip();
+      for (let i = 0; i < 20; i++) {
+        const seed = Math.sin(i * 123.45 + Date.now() / 150);
+        const x = 24 + (Math.abs(seed * 320) % 320);
+        const y = 24 + ((Math.abs(seed * 48271) + (Date.now() / 1.5) % 240) % 240);
         ctx.beginPath();
-        ctx.rect(136, 54, 368, 294);
-        ctx.clip();
-        for (let i = 0; i < 25; i++) {
-          const seed = Math.cos(i * 987.65 + Date.now() / 120);
-          const x = 136 + ((Math.abs(seed * 468) - (Date.now() / 1.5) % 468 + 468) % 368);
-          const y = 54 + ((Math.abs(seed * 294) + (Date.now() / 2.5) % 294) % 294);
-          const size = Math.abs(seed * 123) % 2 + 1;
-          ctx.fillRect(x, y, size, size);
-        }
-        ctx.restore();
-      } else {
-        // Full screen blizzard
-        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-        for (let i = 0; i < 50; i++) {
-          const seed = Math.cos(i * 987.65 + Date.now() / 120);
-          const x = (Math.abs(seed * 840) - (Date.now() / 1.5) % 840 + 840) % 640;
-          const y = (Math.abs(seed * 480) + (Date.now() / 2.5) % 480) % 480;
-          const size = Math.abs(seed * 123) % 3 + 1;
-          ctx.fillRect(x, y, size, size);
-        }
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 2, y + 14);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else {
+      // Full screen rain for still-full and sound-novel styles: Make it bold, high-contrast, beautiful retro pixel-art drops!
+      ctx.strokeStyle = "rgba(180, 210, 255, 0.7)";
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 35; i++) {
+        const seed = Math.sin(i * 123.45 + Date.now() / 150);
+        const x = Math.abs(seed * 640) % 640;
+        const y = (Math.abs(seed * 48271) + (Date.now() / 1.5) % 480) % 480;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 3, y + 18); // Slanted longer rain drops
+        ctx.stroke();
       }
     }
+  } else if (State.adgWeatherEffect === "blizzard") {
+    if (State.adgLayoutStyle === "gameboy") {
+      // Draw inside Gameboy active screen area only (X=136, Y=54, W=368, H=294)
+      ctx.fillStyle = "rgba(139, 172, 15, 0.9)";
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(136, 54, 368, 294);
+      ctx.clip();
+      for (let i = 0; i < 25; i++) {
+        const seed = Math.cos(i * 987.65 + Date.now() / 120);
+        const x = 136 + ((Math.abs(seed * 468) - (Date.now() / 1.5) % 468 + 468) % 368);
+        const y = 54 + ((Math.abs(seed * 294) + (Date.now() / 2.5) % 294) % 294);
+        const size = Math.abs(seed * 123) % 2 + 1;
+        ctx.fillRect(x, y, size, size);
+      }
+      ctx.restore();
+    } else if (State.adgLayoutStyle === "detective-command") {
+      // Draw inside top-left Still image box only (X=24, Y=24, W=320, H=240)
+      ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(24, 24, 320, 240);
+      ctx.clip();
+      for (let i = 0; i < 20; i++) {
+        const seed = Math.cos(i * 987.65 + Date.now() / 120);
+        const x = 24 + ((Math.abs(seed * 420) - (Date.now() / 1.5) % 420 + 420) % 320);
+        const y = 24 + ((Math.abs(seed * 240) + (Date.now() / 2.5) % 240) % 240);
+        const size = Math.abs(seed * 123) % 2 + 1;
+        ctx.fillRect(x, y, size, size);
+      }
+      ctx.restore();
+    } else {
+      // Full screen blizzard for still-full and sound-novel styles
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      for (let i = 0; i < 50; i++) {
+        const seed = Math.cos(i * 987.65 + Date.now() / 120);
+        const x = (Math.abs(seed * 840) - (Date.now() / 1.5) % 840 + 840) % 640;
+        const y = (Math.abs(seed * 480) + (Date.now() / 2.5) % 480) % 480;
+        const size = Math.abs(seed * 123) % 3 + 1;
+        ctx.fillRect(x, y, size, size);
+      }
+    }
+  }
 
-    // --- Thunder Flash Overlay ---
-    if (State.adgThunderFlashTime > 0) {
-      const elapsed = Date.now() - State.adgThunderFlashTime;
-      if (elapsed < 150) {
+  // --- Thunder Flash Overlay (Rendered globally on top of the layout bounds) ---
+  if (State.adgThunderFlashTime > 0) {
+    const elapsed = Date.now() - State.adgThunderFlashTime;
+    if (elapsed < 150) {
+      if (State.adgLayoutStyle === "gameboy") {
+        // Game Boy screen thunder flash (lightest shade of green)
+        ctx.fillStyle = "rgba(155, 188, 15, 0.95)";
+        ctx.fillRect(136, 54, 368, 294);
+      } else if (State.adgLayoutStyle === "detective-command") {
+        // Flash only inside the still window
+        ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+        ctx.fillRect(24, 24, 320, 240);
+      } else {
+        // Full screen flash
         ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
         ctx.fillRect(0, 0, 640, 480);
-      } else if (elapsed < 300) {
+      }
+    } else if (elapsed < 300) {
+      if (State.adgLayoutStyle === "gameboy") {
+        ctx.fillStyle = "rgba(155, 188, 15, 0.5)";
+        ctx.fillRect(136, 54, 368, 294);
+      } else if (State.adgLayoutStyle === "detective-command") {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+        ctx.fillRect(24, 24, 320, 240);
+      } else {
         ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
         ctx.fillRect(0, 0, 640, 480);
-      } else {
-        State.adgThunderFlashTime = 0; // reset
       }
+    } else {
+      State.adgThunderFlashTime = 0; // reset
     }
   }
 }
 
-// Composition loop to keep the cursor blinking smoothly in real-time
+// Composition loop to keep weather effects and blinking cursors animating smoothly in real-time
 function startADGAnimationLoop() {
   if (State.adgLoopRunning) return;
   State.adgLoopRunning = true;
@@ -2354,10 +2456,8 @@ function startADGAnimationLoop() {
       return;
     }
     
-    // Only redraw for blinking if typing is complete and window is visible
-    if (State.adgTypingComplete) {
-      drawADGComposition();
-    }
+    // Constant redraw at 60 FPS for fluid environmental/text typing animations
+    drawADGComposition();
     
     requestAnimationFrame(loop);
   };
