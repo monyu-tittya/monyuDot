@@ -1477,7 +1477,19 @@ function saveResultToDisk() {
 }
 
 function refreshLibraryUI() {
-  const library = JSON.parse(localStorage.getItem("pic3104_library") || "[]");
+  let library = JSON.parse(localStorage.getItem("pic3104_library") || "[]");
+
+  // On-the-fly migration to assign unique IDs to older/legacy items that do not have an id field
+  let migrated = false;
+  library.forEach((item, idx) => {
+    if (item.id === undefined || item.id === null) {
+      item.id = Date.now() - idx;
+      migrated = true;
+    }
+  });
+  if (migrated) {
+    localStorage.setItem("pic3104_library", JSON.stringify(library));
+  }
 
   if (library.length === 0) {
     DOM.adgEmptyPlaceholder.classList.remove("hidden");
@@ -1503,7 +1515,7 @@ function refreshLibraryUI() {
     li.className = "library-item";
     
     // Select the newly added item or previously selected item
-    if (State.adgSelectedId === item.id || (!State.adgSelectedId && idx === library.length - 1)) {
+    if (State.adgSelectedId == item.id || (!State.adgSelectedId && idx === library.length - 1)) {
       li.classList.add("selected");
       State.adgSelectedId = item.id;
       State.adgBackgroundImgData = item.data;
@@ -1564,6 +1576,9 @@ function loadADGBackground() {
   img.onload = () => {
     State.adgBackgroundImg = img;
     triggerTypewriter();
+  };
+  img.onerror = (e) => {
+    console.error("Failed to load ADG background image from base64 data:", e);
   };
   img.src = State.adgBackgroundImgData;
 }
@@ -1840,7 +1855,7 @@ function drawADGComposition() {
     const lines = State.adgDisplayedText.split("\n");
     const lineSpacing = 24;
     const startX = 32;
-    const startY = charName ? 402 : 370; // Pushed down to Y=402 to leave a comfortable 52px gap from Y=350 (approx 37px of clear space between text blocks)
+    const startY = charName ? 388 : 370; // Pushed down to Y=388 to leave a comfortable 38px gap from Y=350 (approx 23px of clear space between text blocks)
 
     lines.forEach((line, idx) => {
       if (idx < 3) { // Draw up to 3 lines max
