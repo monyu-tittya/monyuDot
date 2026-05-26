@@ -109,7 +109,7 @@ const SoundFX = {
 
 // --- Preset Palettes Configuration ---
 const PalettePresets = {
-  // PC-3104 Legend System 16-color Analog Palette
+  // PC-3104 Legend System 16-color Analog Palette (Internal fallback)
   "pc98-system": [
     { r: 0, g: 0, b: 0 },       // Black
     { r: 0, g: 0, b: 128 },     // Dark Blue
@@ -129,7 +129,27 @@ const PalettePresets = {
     { r: 255, g: 255, b: 255 }  // White
   ],
 
-  // GB風 DMG Green Palette (4 shades)
+  // スー◯ァミ風 Vibrant 16-bit SNES style palette (64 rich colors)
+  "snes": [
+    { r: 0, g: 0, b: 0 }, { r: 32, g: 32, b: 32 }, { r: 64, g: 64, b: 64 }, { r: 128, g: 128, b: 128 },
+    { r: 192, g: 192, b: 192 }, { r: 255, g: 255, b: 255 }, { r: 255, g: 0, b: 0 }, { r: 128, g: 0, b: 0 },
+    { r: 255, g: 128, b: 128 }, { r: 255, g: 0, b: 255 }, { r: 128, g: 0, b: 128 }, { r: 255, g: 128, b: 255 },
+    { r: 0, g: 0, b: 255 }, { r: 0, g: 0, b: 128 }, { r: 128, g: 128, b: 255 }, { r: 0, g: 255, b: 255 },
+    { r: 0, g: 128, b: 128 }, { r: 128, g: 255, b: 255 }, { r: 0, g: 255, b: 0 }, { r: 0, g: 128, b: 0 },
+    { r: 128, g: 255, b: 128 }, { r: 255, g: 255, b: 0 }, { r: 128, g: 128, b: 0 }, { r: 255, g: 255, b: 128 },
+    { r: 255, g: 128, b: 0 }, { r: 128, g: 64, b: 0 }, { r: 255, g: 192, b: 128 }, { r: 255, g: 0, b: 128 },
+    { r: 128, g: 0, b: 64 }, { r: 0, g: 128, b: 255 }, { r: 0, g: 64, b: 128 }, { r: 128, g: 192, b: 255 },
+    { r: 128, g: 0, b: 255 }, { r: 64, g: 0, b: 128 }, { r: 192, g: 128, b: 255 }, { r: 0, g: 255, b: 128 },
+    { r: 0, g: 128, b: 64 }, { r: 128, g: 255, b: 192 }, { r: 128, g: 255, b: 0 }, { r: 64, g: 128, b: 0 },
+    { r: 192, g: 255, b: 128 }, { r: 255, g: 128, b: 255 }, { r: 128, g: 64, b: 128 }, { r: 255, g: 192, b: 255 },
+    { r: 128, g: 64, b: 64 }, { r: 64, g: 32, b: 32 }, { r: 192, g: 128, b: 128 }, { r: 64, g: 64, b: 128 },
+    { r: 32, g: 32, b: 64 }, { r: 128, g: 128, b: 192 }, { r: 64, g: 128, b: 128 }, { r: 32, g: 64, b: 64 },
+    { r: 128, g: 192, b: 192 }, { r: 128, g: 128, b: 64 }, { r: 64, g: 64, b: 32 }, { r: 192, g: 192, b: 128 },
+    { r: 128, g: 64, b: 0 }, { r: 96, g: 48, b: 0 }, { r: 192, g: 128, b: 64 }, { r: 96, g: 96, b: 96 },
+    { r: 160, g: 160, b: 160 }, { r: 224, g: 224, b: 224 }, { r: 40, g: 80, b: 40 }, { r: 16, g: 48, b: 16 }
+  ],
+
+  // ゲーム◯ーイ風 Classic DMG green shades (4 colors)
   "gameboy": [
     { r: 15, g: 56, b: 15 },
     { r: 48, g: 98, b: 48 },
@@ -137,44 +157,36 @@ const PalettePresets = {
     { r: 155, g: 188, b: 15 }
   ],
 
-  // CGA Palette 1 (High Magenta/Cyan)
-  "cga": [
-    { r: 0, g: 0, b: 0 },
-    { r: 85, g: 255, b: 255 },
-    { r: 255, g: 85, b: 255 },
-    { r: 255, g: 255, b: 255 }
+  // アーケードゲーム風 High contrast vibrant arcade tones (32 colors)
+  "arcade": [
+    { r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 }, { r: 255, g: 0, b: 0 }, { r: 0, g: 255, b: 0 },
+    { r: 0, g: 0, b: 255 }, { r: 255, g: 255, b: 0 }, { r: 255, g: 0, b: 255 }, { r: 0, g: 255, b: 255 },
+    { r: 255, g: 128, b: 0 }, { r: 255, g: 0, b: 128 }, { r: 128, g: 0, b: 255 }, { r: 0, g: 128, b: 255 },
+    { r: 0, g: 255, b: 128 }, { r: 128, g: 255, b: 0 }, { r: 255, g: 200, b: 0 }, { r: 200, g: 0, b: 255 },
+    { r: 128, g: 128, b: 128 }, { r: 64, g: 64, b: 64 }, { r: 192, g: 192, b: 192 }, { r: 128, g: 0, b: 0 },
+    { r: 0, g: 128, b: 0 }, { r: 0, g: 0, b: 128 }, { r: 128, g: 128, b: 0 }, { r: 128, g: 0, b: 128 },
+    { r: 0, g: 128, b: 128 }, { r: 128, g: 64, b: 0 }, { r: 255, g: 128, b: 255 }, { r: 128, g: 255, b: 255 },
+    { r: 255, g: 255, b: 128 }, { r: 64, g: 0, b: 64 }, { r: 0, g: 64, b: 64 }, { r: 64, g: 64, b: 0 }
   ],
 
-  // Cyberpunk Electric Neon Palette (16 colors)
-  "cyberpunk": [
-    { r: 13, g: 2, b: 33 },
-    { r: 15, g: 8, b: 68 },
-    { r: 38, g: 20, b: 71 },
-    { r: 94, g: 37, b: 99 },
-    { r: 144, g: 26, b: 94 },
-    { r: 241, g: 12, b: 73 },
-    { r: 255, g: 0, b: 127 },
-    { r: 57, g: 0, b: 153 },
-    { r: 158, g: 0, b: 89 },
-    { r: 255, g: 84, b: 0 },
-    { r: 255, g: 189, b: 0 },
-    { r: 0, g: 240, b: 255 },
-    { r: 0, g: 255, b: 102 },
-    { r: 18, g: 1, b: 54 },
-    { r: 3, g: 0, b: 30 },
-    { r: 255, g: 255, b: 255 }
-  ],
-
-  // FC風 Classic dominant representative colors (32 colors)
-  "nes": [
-    { r: 124, g: 124, b: 124 }, { r: 0, g: 0, b: 252 }, { r: 0, g: 0, b: 188 }, { r: 68, g: 40, b: 188 },
-    { r: 148, g: 0, b: 132 }, { r: 168, g: 0, b: 32 }, { r: 168, g: 16, b: 0 }, { r: 136, g: 20, b: 0 },
-    { r: 80, g: 48, b: 0 }, { r: 0, g: 120, b: 0 }, { r: 0, g: 104, b: 0 }, { r: 0, g: 88, b: 0 },
-    { r: 0, g: 64, b: 88 }, { r: 0, g: 0, b: 0 }, { r: 252, g: 252, b: 252 }, { r: 0, g: 136, b: 252 },
-    { r: 0, g: 120, b: 248 }, { r: 68, g: 80, b: 248 }, { r: 188, g: 40, b: 248 }, { r: 252, g: 0, b: 188 },
-    { r: 252, g: 64, b: 68 }, { r: 248, g: 56, b: 0 }, { r: 228, g: 92, b: 16 }, { r: 172, g: 124, b: 0 },
-    { r: 0, g: 184, b: 0 }, { r: 0, g: 168, b: 0 }, { r: 0, g: 168, b: 68 }, { r: 0, g: 136, b: 136 },
-    { r: 248, g: 216, b: 120 }, { r: 252, g: 252, b: 0 }, { r: 168, g: 252, b: 0 }, { r: 80, g: 240, b: 0 }
+  // ゆめかわ (16色) Soft dreamy pastel decora palette
+  "yumekawa": [
+    { r: 255, g: 209, b: 220 }, // Soft pink
+    { r: 255, g: 183, b: 197 }, // Sweet pink
+    { r: 255, g: 229, b: 236 }, // Light milk pink
+    { r: 232, g: 223, b: 245 }, // Lavender
+    { r: 216, g: 178, b: 209 }, // Soft lilac
+    { r: 221, g: 255, b: 217 }, // Mint green
+    { r: 193, g: 235, b: 208 }, // Soft mint
+    { r: 240, g: 248, b: 255 }, // Alice blue
+    { r: 196, g: 250, b: 248 }, // Baby blue
+    { r: 253, g: 253, b: 150 }, // Pastel yellow
+    { r: 255, g: 254, b: 200 }, // Cream yellow
+    { r: 255, g: 216, b: 177 }, // Pastel orange
+    { r: 255, g: 240, b: 245 }, // Lavender blush
+    { r: 255, g: 255, b: 255 }, // Pure white
+    { r: 234, g: 230, b: 232 }, // Pale grey
+    { r: 200, g: 200, b: 230 }  // Soft pastel indigo
   ]
 };
 
@@ -1623,8 +1635,8 @@ function triggerTypewriter() {
   const dialogValue = DOM.adgDialogText.value || "あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はじまっています。";
   
   let fullText = "";
-  if (State.adgLayoutStyle === "detective-command" || State.adgLayoutStyle === "sound-novel") {
-    // Detective ADV and Sound Novel style: pre-formatted inline name and brackets
+  if (State.adgLayoutStyle === "detective-command" || State.adgLayoutStyle === "sound-novel" || State.adgLayoutStyle === "gameboy") {
+    // Detective ADV, Sound Novel, and Gameboy style: pre-formatted inline name and brackets
     fullText = charName ? `${charName}「${dialogValue}」` : dialogValue;
   } else {
     // PC-3104 standard style: separate name plate and pure dialog text
@@ -1741,6 +1753,53 @@ function drawPixelatedText(ctx, text, x, y, font, color) {
 
   tempCtx.putImageData(imgData, 0, 0);
   ctx.drawImage(tempCanvas, x, y);
+}
+
+// Convert background images to Gameboy green 4-color tones on-the-fly
+function drawGameboyImage(ctx, img, dx, dy, dw, dh) {
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = 160;
+  tempCanvas.height = 144;
+  const tempCtx = tempCanvas.getContext("2d");
+  tempCtx.drawImage(img, 0, 0, 160, 144);
+  
+  const imgData = tempCtx.getImageData(0, 0, 160, 144);
+  const data = imgData.data;
+  
+  const gbColors = [
+    { r: 15, g: 56, b: 15 },
+    { r: 48, g: 98, b: 48 },
+    { r: 139, g: 172, b: 15 },
+    { r: 155, g: 188, b: 15 }
+  ];
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i+1];
+    const b = data[i+2];
+    
+    // Grayscale lightness mapping
+    const lightness = 0.299 * r + 0.587 * g + 0.114 * b;
+    
+    let colorIdx = 3;
+    if (lightness < 64) {
+      colorIdx = 0;
+    } else if (lightness < 128) {
+      colorIdx = 1;
+    } else if (lightness < 192) {
+      colorIdx = 2;
+    }
+    
+    const color = gbColors[colorIdx];
+    data[i] = color.r;
+    data[i+1] = color.g;
+    data[i+2] = color.b;
+  }
+  
+  tempCtx.putImageData(imgData, 0, 0);
+  
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(tempCanvas, dx, dy, dw, dh);
 }
 
 function drawADGComposition() {
@@ -1891,6 +1950,122 @@ function drawADGComposition() {
         ctx.fill();
       }
     }
+
+  } else if (State.adgLayoutStyle === "gameboy") {
+    // --- Layout 4: Game Boy Retro DMG-01 Console Style ---
+    
+    // 1. Draw solid grey plastic Gameboy shell background (#c5c6b6 is the classic DMG grey!)
+    ctx.fillStyle = "#c5c6b6";
+    ctx.fillRect(0, 0, 640, 480);
+
+    // 2. Draw screen dark bezel frame (Bezel dimensions: X=80, Y=15, W=480, H=370, R=15)
+    ctx.fillStyle = "#6d7373"; // Screen glass/bezel grey
+    
+    // Draw rounded bezel
+    const drawBezel = (c, x, y, width, height, r) => {
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.lineTo(x + width - r, y);
+      c.quadraticCurveTo(x + width, y, x + width, y + r);
+      c.lineTo(x + width, y + height - r);
+      c.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      c.lineTo(x + r, y + height);
+      c.quadraticCurveTo(x, y + height, x, y + height - r);
+      c.lineTo(x, y + r);
+      c.quadraticCurveTo(x, y, x + r, y);
+      c.closePath();
+      c.fill();
+    };
+    drawBezel(ctx, 80, 15, 480, 370, 12);
+
+    // 3. Draw Blue/Red accent stripes at the top of the bezel
+    ctx.fillStyle = "#8a2434"; // Magenta stripe
+    ctx.fillRect(80, 30, 480, 2);
+    ctx.fillStyle = "#1e3d59"; // Blue stripe
+    ctx.fillRect(80, 36, 480, 2);
+
+    // 4. Draw Bezel text "DOT MATRIX WITH STEREO SOUND"
+    ctx.fillStyle = "#95a5a6";
+    ctx.font = "bold 9px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("DOT MATRIX WITH STEREO SOUND", 320, 26);
+
+    // 5. Draw Battery Indicator LED on the left
+    ctx.fillStyle = "#2c3e50"; // Dark outer circle
+    ctx.beginPath();
+    ctx.arc(106, 170, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Battery LED (glowing red when active!)
+    ctx.fillStyle = "#ff0000";
+    ctx.beginPath();
+    ctx.arc(106, 170, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#95a5a6";
+    ctx.font = "bold 8px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("BATTERY", 106, 192);
+
+    // 6. Draw actual Game Boy Green LCD screen area (Active screen dimensions: X=136, Y=54, W=368, H=294)
+    ctx.fillStyle = "#9bbc0f"; // Lightest GB Green
+    ctx.fillRect(136, 54, 368, 294);
+    
+    // Draw LCD screen inner drop shadow border (1px black line)
+    ctx.strokeStyle = "#0f380f";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(136, 54, 368, 294);
+
+    // 7. Draw background image in Gameboy 4 green tones!
+    if (State.adgBackgroundImg) {
+      drawGameboyImage(ctx, State.adgBackgroundImg, 136, 54, 368, 204); // Leave bottom 90px for dialogue box
+    } else {
+      // Draw background pattern/fill inside screen
+      ctx.fillStyle = "#8bac0f";
+      ctx.fillRect(136, 54, 368, 204);
+    }
+
+    // 8. Draw classic Game Boy style dialogue box at the bottom of the screen (X=144, Y=264, W=352, H=76)
+    ctx.fillStyle = "#9bbc0f";
+    ctx.fillRect(144, 264, 352, 76);
+    
+    ctx.strokeStyle = "#0f380f";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(144, 264, 352, 76);
+
+    // 9. Draw Dialogue text in deepest green (#0f380f)
+    const lines = State.adgDisplayedText.split("\n");
+    const lineSpacing = 20;
+    const startX = 154;
+    const startY = 282;
+
+    lines.forEach((line, idx) => {
+      if (idx < 3) { // Gameboy standard: up to 3 lines in text box
+        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "13px 'DotGothic16', monospace", "#0f380f");
+      }
+    });
+
+    // 10. Draw Flashing cursor triangle ▼ when typing is completed (bottom-right of dialogue box)
+    if (State.adgTypingComplete) {
+      if (Math.floor(Date.now() / 300) % 2 === 0) {
+        ctx.fillStyle = "#0f380f";
+        ctx.beginPath();
+        ctx.moveTo(480, 324);
+        ctx.lineTo(488, 324);
+        ctx.lineTo(484, 330);
+        ctx.fill();
+      }
+    }
+
+    // 11. Draw lower Gameboy console details (Nintendo logo, grey plastic ridges at the bottom of canvas)
+    ctx.fillStyle = "#9ba3a3";
+    ctx.font = "italic bold 14px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Nintendo", 320, 420);
+    
+    // Draw classic A and B buttons partially visible or text
+    ctx.fillStyle = "#a8acac";
+    ctx.fillText("GAME BOY", 320, 442);
 
   } else {
     // --- Layout 1: Classic Full-Screen Slide Layout (PC-3104 Standard) ---
