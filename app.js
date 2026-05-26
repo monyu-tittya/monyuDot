@@ -1577,7 +1577,7 @@ function triggerTypewriter() {
   let fullText = "";
   if (State.adgLayoutStyle === "detective-command") {
     // Detective ADV style: pre-formatted inline name and brackets
-    fullText = charName ? `${charName}「${dialogValue}` : dialogValue;
+    fullText = charName ? `${charName}「${dialogValue}」` : dialogValue;
   } else {
     // PC-3104 standard style: separate name plate and pure dialog text
     fullText = dialogValue;
@@ -1740,8 +1740,18 @@ function drawADGComposition() {
       if (idx < 7) { // limit to 7 lines max
         const lineY = startMenuY + (idx * menuSpacing);
         if (idx === activeCursorIndex) {
-          // Draw active selector pointer "▶" next to active item
-          drawPixelatedText(ctx, "▶", startMenuX, lineY, "16px 'DotGothic16', monospace", "#ffffff");
+          // Draw active selector pointer "▷" next to active item - open triangle cursor (historically accurate PC-98 style!)
+          // Rendered using direct canvas vector path to guarantee crisp edges and 100% immune to iOS system font-loading tofu blocks!
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.lineJoin = "miter";
+          ctx.beginPath();
+          ctx.moveTo(startMenuX + 2, lineY + 2);
+          ctx.lineTo(startMenuX + 11, lineY + 8);
+          ctx.lineTo(startMenuX + 2, lineY + 14);
+          ctx.closePath();
+          ctx.stroke();
+
           drawPixelatedText(ctx, cmd, startMenuX + 20, lineY, "16px 'DotGothic16', monospace", "#ffffff");
         } else {
           drawPixelatedText(ctx, cmd, startMenuX + 20, lineY, "16px 'DotGothic16', monospace", "#ffffff");
@@ -1823,14 +1833,14 @@ function drawADGComposition() {
     // 3. Draw Character Name plate
     const charName = DOM.adgCharName.value.trim();
     if (charName) {
-      drawPixelatedText(ctx, `【${charName}】`, 32, 372, "bold 15px 'DotGothic16', monospace", "#00ffff");
+      drawPixelatedText(ctx, `【${charName}】`, 32, 350, "bold 15px 'DotGothic16', monospace", "#00ffff"); // Pushed up further to Y=350 to avoid crowding
     }
 
     // 4. Draw Dialogue lines
     const lines = State.adgDisplayedText.split("\n");
     const lineSpacing = 24;
     const startX = 32;
-    const startY = charName ? 386 : 368; // shift up slightly if no name
+    const startY = charName ? 402 : 370; // Pushed down to Y=402 to leave a comfortable 52px gap from Y=350 (approx 37px of clear space between text blocks)
 
     lines.forEach((line, idx) => {
       if (idx < 3) { // Draw up to 3 lines max
@@ -2003,15 +2013,17 @@ function setupADGMaker() {
   });
 
   DOM.adgCharName.addEventListener("input", () => {
-    drawADGComposition();
+    if (!DOM.adgTypewriter.checked) {
+      triggerTypewriter();
+    } else {
+      drawADGComposition();
+    }
   });
 
   DOM.adgDialogText.addEventListener("input", () => {
     // If not typewriter, render instantly on type
     if (!DOM.adgTypewriter.checked) {
-      State.adgDisplayedText = DOM.adgDialogText.value;
-      State.adgTypingComplete = true;
-      drawADGComposition();
+      triggerTypewriter();
     }
   });
 
@@ -2194,8 +2206,33 @@ function compileADGGif() {
   });
 }
 
+// Convert standard base64 dataURL to raw binary Blob
+function dataURLtoBlob(dataUrl) {
+  const parts = dataUrl.split(",");
+  const mime = parts[0].match(/:(.*?);/)[1];
+  const bstr = atob(parts[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+}
+
+// Convert dataURL to safe local Blob URL for iOS animated GIF saving compatibility
+function dataURLtoBlobURL(dataUrl) {
+  try {
+    const blob = dataURLtoBlob(dataUrl);
+    return URL.createObjectURL(blob);
+  } catch (e) {
+    console.error("Failed to convert dataURL to BlobURL", e);
+    return dataUrl; // fallback
+  }
+}
+
 function showExportPreview(src) {
   if (DOM.exportPreviewImg && DOM.exportDialog) {
+    // Keep raw base64 data URL for iOS Safari long-press saving compatibility (Blob URLs are sandboxed and save as static PNGs)
     DOM.exportPreviewImg.src = src;
     DOM.exportDialog.classList.remove("hidden");
   }

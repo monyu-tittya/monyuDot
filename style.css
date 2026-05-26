@@ -1176,6 +1176,19 @@ input[type="radio"], input[type="checkbox"] {
     box-shadow: none;
   }
   
+  .window.modal {
+    width: 92% !important;
+    max-width: 400px !important;
+    height: auto !important;
+    max-height: 85% !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translate(-50%, -50%) !important;
+    border: 2px solid !important;
+    box-shadow: 4px 4px 20px rgba(0,0,0,0.5) !important;
+  }
+  
   .window-body {
     padding: 4px;
     gap: 4px;
