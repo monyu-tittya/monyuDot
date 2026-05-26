@@ -1844,15 +1844,15 @@ function triggerTypewriter() {
 }
 
 // --- Non-Anti-Aliased Pixelated Text Rendering Utility ---
-function drawPixelatedText(ctx, text, x, y, font, color) {
+function drawPixelatedText(ctx, text, x, y, font, color, drawShadow = false) {
   ctx.font = font;
   const metrics = ctx.measureText(text);
-  const textWidth = Math.ceil(metrics.width) + 10;
+  const textWidth = Math.ceil(metrics.width) + 12;
   
   let fontSize = 15;
   const match = font.match(/(\d+)px/);
   if (match) fontSize = parseInt(match[1]);
-  const textHeight = Math.ceil(fontSize * 1.5);
+  const textHeight = Math.ceil(fontSize * 1.5) + 6;
 
   if (textWidth <= 0 || textHeight <= 0) return;
 
@@ -1863,8 +1863,28 @@ function drawPixelatedText(ctx, text, x, y, font, color) {
 
   tempCtx.font = font;
   tempCtx.textBaseline = "top";
-  tempCtx.fillStyle = "#ffffff";
-  tempCtx.fillText(text, 0, 0);
+
+  if (drawShadow) {
+    // SFC Kamaitachi no Yoru style: bold black stroke border around text!
+    // We draw the text offset in 8 directions around it in a grey/white key color first, 
+    // then draw the center in another key color, so we can convert them to perfectly crisp pixel outlines.
+    
+    // Draw 8-direction shadow block in color #000001 (stands for shadow pixels)
+    tempCtx.fillStyle = "#000001";
+    for (let dx = 0; dx <= 2; dx++) {
+      for (let dy = 0; dy <= 2; dy++) {
+        if (dx === 1 && dy === 1) continue;
+        tempCtx.fillText(text, dx, dy);
+      }
+    }
+    // Draw center in color #ffffff (stands for body pixels)
+    tempCtx.fillStyle = "#ffffff";
+    tempCtx.fillText(text, 1, 1);
+  } else {
+    // Normal text
+    tempCtx.fillStyle = "#ffffff";
+    tempCtx.fillText(text, 0, 0);
+  }
 
   const imgData = tempCtx.getImageData(0, 0, textWidth, textHeight);
   const pixels = imgData.data;
@@ -1880,19 +1900,47 @@ function drawPixelatedText(ctx, text, x, y, font, color) {
   }
 
   for (let i = 0; i < pixels.length; i += 4) {
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
     const alpha = pixels[i + 3];
-    if (alpha > 80) { // threshold value to clear anti-aliasing
-      pixels[i] = targetR;
-      pixels[i + 1] = targetG;
-      pixels[i + 2] = targetB;
-      pixels[i + 3] = 255;
+
+    if (drawShadow) {
+      if (alpha > 80) {
+        // Is it the center/body pixel? (#ffffff)
+        if (r > 200 && g > 200 && b > 200) {
+          pixels[i] = targetR;
+          pixels[i + 1] = targetG;
+          pixels[i + 2] = targetB;
+          pixels[i + 3] = 255;
+        } else {
+          // It's the shadow border (#000001)
+          pixels[i] = 0;
+          pixels[i + 1] = 0;
+          pixels[i + 2] = 0;
+          pixels[i + 3] = 255;
+        }
+      } else {
+        pixels[i + 3] = 0;
+      }
     } else {
-      pixels[i + 3] = 0;
+      if (alpha > 80) { // threshold value to clear anti-aliasing
+        pixels[i] = targetR;
+        pixels[i + 1] = targetG;
+        pixels[i + 2] = targetB;
+        pixels[i + 3] = 255;
+      } else {
+        pixels[i + 3] = 0;
+      }
     }
   }
 
   tempCtx.putImageData(imgData, 0, 0);
-  ctx.drawImage(tempCanvas, x, y);
+  
+  // Align position based on offset
+  const renderX = drawShadow ? x - 1 : x;
+  const renderY = drawShadow ? y - 1 : y;
+  ctx.drawImage(tempCanvas, renderX, renderY);
 }
 
 // Convert background images to Gameboy green 4-color tones on-the-fly preserving original aspect ratio
@@ -2131,7 +2179,7 @@ function drawADGComposition() {
           lineSpacing = 44;
         }
         
-        drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor);
+        drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor, true); // true sets drawShadow/outline on!
         currentY += lineSpacing;
       }
     });
