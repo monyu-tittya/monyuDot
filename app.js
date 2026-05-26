@@ -2252,8 +2252,13 @@ function dataURLtoBlobURL(dataUrl) {
 
 function showExportPreview(src) {
   if (DOM.exportPreviewImg && DOM.exportDialog) {
-    // Keep raw base64 data URL for iOS Safari long-press saving compatibility (Blob URLs are sandboxed and save as static PNGs)
-    DOM.exportPreviewImg.src = src;
+    let finalSrc = src;
+    // For iOS Safari animated GIF saving compatibility, we MUST use a Blob URL instead of a raw base64 data URL.
+    // Raw base64 data URLs for GIFs often get saved as static PNGs of the first frame on iOS.
+    if (src && src.startsWith("data:image/gif")) {
+      finalSrc = dataURLtoBlobURL(src);
+    }
+    DOM.exportPreviewImg.src = finalSrc;
     DOM.exportDialog.classList.remove("hidden");
   }
 }
