@@ -2834,99 +2834,109 @@ function loadADGSettings() {
 
 // --- Synthesized Weather Environmental Sound Effects ---
 function updateWeatherAudio() {
-  if (!SoundFX.enabled) {
+  try {
+    if (!SoundFX.enabled) {
+      stopWeatherAudio();
+      return;
+    }
+    SoundFX.init();
+    if (!SoundFX.ctx) return;
+    
     stopWeatherAudio();
-    return;
-  }
-  SoundFX.init();
-  if (!SoundFX.ctx) return;
-  
-  stopWeatherAudio();
-  
-  const effect = State.adgWeatherEffect;
-  if (effect === "none") return;
-  
-  State.adgWeatherAudioNodes = [];
-  
-  if (effect === "rain") {
-    // Rain pitter patter: modulated white noise bandpass filter
-    const bufferSize = SoundFX.ctx.sampleRate * 2.0;
-    const buffer = SoundFX.ctx.createBuffer(1, bufferSize, SoundFX.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+    
+    const effect = State.adgWeatherEffect;
+    if (effect === "none") return;
+    
+    State.adgWeatherAudioNodes = [];
+    
+    // Safely get sampleRate with a solid fallback (essential for iOS Safari)
+    const sampleRate = SoundFX.ctx.sampleRate || 44100;
+    const bufferSize = sampleRate * 2.0;
+    
+    if (effect === "rain") {
+      // Rain pitter patter: modulated white noise bandpass filter
+      const buffer = SoundFX.ctx.createBuffer(1, bufferSize, sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      
+      const noise = SoundFX.ctx.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+      
+      const filter = SoundFX.ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 1400; // Rain frequency
+      filter.Q.value = 1.0;
+      
+      const gain = SoundFX.ctx.createGain();
+      gain.gain.value = 0.02; // soft hum
+      
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(SoundFX.ctx.destination);
+      
+      noise.start(0);
+      State.adgWeatherAudioNodes.push(noise, gain);
+    } else if (effect === "blizzard") {
+      // Blizzard wind: Sweeping white noise modulated with a slow LFO
+      const buffer = SoundFX.ctx.createBuffer(1, bufferSize, sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      
+      const noise = SoundFX.ctx.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+      
+      const filter = SoundFX.ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 550;
+      filter.Q.value = 2.0;
+      
+      const gain = SoundFX.ctx.createGain();
+      gain.gain.value = 0.035; // wind howling
+      
+      // Slow sweeping LFO oscillator (modulates wind frequency)
+      const osc = SoundFX.ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = 0.15; // 0.15Hz slow sweep
+      
+      const oscGain = SoundFX.ctx.createGain();
+      oscGain.gain.value = 300; // +/- 300Hz sweep range
+      
+      osc.connect(oscGain);
+      oscGain.connect(filter.frequency);
+      
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(SoundFX.ctx.destination);
+      
+      noise.start(0);
+      osc.start(0);
+      State.adgWeatherAudioNodes.push(noise, osc, gain);
     }
-    
-    const noise = SoundFX.ctx.createBufferSource();
-    noise.buffer = buffer;
-    noise.loop = true;
-    
-    const filter = SoundFX.ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.value = 1400; // Rain frequency
-    filter.Q.value = 1.0;
-    
-    const gain = SoundFX.ctx.createGain();
-    gain.gain.value = 0.02; // soft hum
-    
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(SoundFX.ctx.destination);
-    
-    noise.start(0);
-    State.adgWeatherAudioNodes.push(noise, gain);
-  } else if (effect === "blizzard") {
-    // Blizzard wind: Sweeping white noise modulated with a slow LFO
-    const bufferSize = SoundFX.ctx.sampleRate * 2.0;
-    const buffer = SoundFX.ctx.createBuffer(1, bufferSize, SoundFX.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-    
-    const noise = SoundFX.ctx.createBufferSource();
-    noise.buffer = buffer;
-    noise.loop = true;
-    
-    const filter = SoundFX.ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.value = 550;
-    filter.Q.value = 2.0;
-    
-    const gain = SoundFX.ctx.createGain();
-    gain.gain.value = 0.035; // wind howling
-    
-    // Slow sweeping LFO oscillator (modulates wind frequency)
-    const osc = SoundFX.ctx.createOscillator();
-    osc.type = "sine";
-    osc.frequency.value = 0.15; // 0.15Hz slow sweep
-    
-    const oscGain = SoundFX.ctx.createGain();
-    oscGain.gain.value = 300; // +/- 300Hz sweep range
-    
-    osc.connect(oscGain);
-    oscGain.connect(filter.frequency);
-    
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(SoundFX.ctx.destination);
-    
-    noise.start(0);
-    osc.start(0);
-    State.adgWeatherAudioNodes.push(noise, osc, gain);
+  } catch (e) {
+    console.warn("Weather audio synthesis failed or blocked by browser autoplay policy:", e);
   }
 }
 
 function stopWeatherAudio() {
-  if (State.adgWeatherAudioNodes) {
-    State.adgWeatherAudioNodes.forEach(node => {
-      try {
-        node.stop();
-      } catch(e) {}
-      try {
-        node.disconnect();
-      } catch(e) {}
-    });
-    State.adgWeatherAudioNodes = [];
+  try {
+    if (State.adgWeatherAudioNodes) {
+      State.adgWeatherAudioNodes.forEach(node => {
+        try {
+          node.stop();
+        } catch(e) {}
+        try {
+          node.disconnect();
+        } catch(e) {}
+      });
+      State.adgWeatherAudioNodes = [];
+    }
+  } catch (e) {
+    console.warn("Failed to stop weather audio cleanly:", e);
   }
 }
