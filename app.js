@@ -350,20 +350,45 @@ function setupClock() {
   setInterval(updateClock, 10000);
 }
 
+// Helper for unified touch and click events on mobile (safeguards iOS WebKit taps)
+function bindInteractive(el, handler) {
+  if (!el) return;
+  let touched = false;
+  
+  const wrapper = (e) => {
+    if (e.type === "touchstart") {
+      touched = true;
+      e.preventDefault();
+      e.stopPropagation();
+      handler(e);
+    } else if (e.type === "click") {
+      if (touched) {
+        touched = false;
+        return;
+      }
+      e.stopPropagation();
+      handler(e);
+    }
+  };
+
+  el.addEventListener("touchstart", wrapper, { passive: false });
+  el.addEventListener("click", wrapper);
+}
+
 function setupDesktopShortcuts() {
   // My Computer & Recycle Bin double beeps when double-clicked, or single clicked
   const shortcuts = ["icon-mycomputer", "icon-recycle"];
   shortcuts.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      el.addEventListener("click", () => {
+      bindInteractive(el, () => {
         SoundFX.playBeepAlert();
       });
     }
   });
 
   // App Shortcut opens app window
-  DOM.iconPc98.addEventListener("click", () => {
+  bindInteractive(DOM.iconPc98, () => {
     SoundFX.playClick();
     if (DOM.appWindow.classList.contains("minimized") || DOM.appWindow.classList.contains("hidden")) {
       DOM.appWindow.classList.remove("minimized");
@@ -377,7 +402,7 @@ function setupDesktopShortcuts() {
     }
   });
 
-  DOM.taskAppTab.addEventListener("click", () => {
+  bindInteractive(DOM.taskAppTab, () => {
     SoundFX.playClick();
     DOM.appWindow.classList.toggle("minimized");
     DOM.taskAppTab.classList.toggle("active");
@@ -388,37 +413,45 @@ function setupDesktopShortcuts() {
 }
 
 function setupStartMenu() {
-  DOM.btnStart.addEventListener("click", (e) => {
+  bindInteractive(DOM.btnStart, () => {
     SoundFX.playClick();
     DOM.startMenuBox.classList.toggle("hidden");
-    e.stopPropagation();
   });
 
   document.addEventListener("click", () => {
     DOM.startMenuBox.classList.add("hidden");
   });
 
+  // Also close start menu on touch outside
+  document.addEventListener("touchstart", (e) => {
+    if (!DOM.startMenuBox.contains(e.target) && e.target !== DOM.btnStart) {
+      DOM.startMenuBox.classList.add("hidden");
+    }
+  });
+
   DOM.startMenuBox.addEventListener("click", (e) => {
     e.stopPropagation();
   });
+  DOM.startMenuBox.addEventListener("touchstart", (e) => {
+    e.stopPropagation();
+  });
 
-  DOM.startResetApp.addEventListener("click", () => {
+  bindInteractive(DOM.startResetApp, () => {
     SoundFX.playClick();
     DOM.startMenuBox.classList.add("hidden");
     location.reload();
   });
 
-  DOM.startSoundToggle.addEventListener("click", () => {
+  bindInteractive(DOM.startSoundToggle, () => {
     toggleSound();
     DOM.startMenuBox.classList.add("hidden");
   });
 
-  DOM.traySoundIcon.addEventListener("click", (e) => {
+  bindInteractive(DOM.traySoundIcon, () => {
     toggleSound();
-    e.stopPropagation();
   });
 
-  DOM.startAbout.addEventListener("click", () => {
+  bindInteractive(DOM.startAbout, () => {
     SoundFX.playClick();
     DOM.startMenuBox.classList.add("hidden");
     DOM.aboutDialog.classList.remove("hidden");
@@ -1590,8 +1623,8 @@ function triggerTypewriter() {
   const dialogValue = DOM.adgDialogText.value || "あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はじまっています。";
   
   let fullText = "";
-  if (State.adgLayoutStyle === "detective-command") {
-    // Detective ADV style: pre-formatted inline name and brackets
+  if (State.adgLayoutStyle === "detective-command" || State.adgLayoutStyle === "sound-novel") {
+    // Detective ADV and Sound Novel style: pre-formatted inline name and brackets
     fullText = charName ? `${charName}「${dialogValue}」` : dialogValue;
   } else {
     // PC-3104 standard style: separate name plate and pure dialog text
@@ -1819,6 +1852,46 @@ function drawADGComposition() {
       }
     }
 
+  } else if (State.adgLayoutStyle === "sound-novel") {
+    // --- Layout 3: Sound Novel Style (Kamaitachi no Yoru / Otogirisou style) ---
+    
+    // 1. Draw Background
+    if (State.adgBackgroundImg) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(State.adgBackgroundImg, 0, 0, 640, 480);
+    } else {
+      ctx.fillStyle = "#000080"; // Deep Indigo blue
+      ctx.fillRect(0, 0, 640, 480);
+    }
+
+    // 2. Full-screen dark semi-transparent tint overlay for perfect text legibility
+    ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+    ctx.fillRect(0, 0, 640, 480);
+
+    // 3. Draw Dialogue lines spanning the full screen
+    const lines = State.adgDisplayedText.split("\n");
+    const lineSpacing = 28; // Taller line spacing for readable paragraphs
+    const startX = 40;
+    const startY = 48;
+
+    lines.forEach((line, idx) => {
+      if (idx < 14) { // Draw up to 14 lines max
+        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "15px 'DotGothic16', monospace", textColor);
+      }
+    });
+
+    // 4. Draw Flashing cursor triangle ▼ when typing is completed (bottom right)
+    if (State.adgTypingComplete) {
+      if (Math.floor(Date.now() / 300) % 2 === 0) {
+        ctx.fillStyle = textColor;
+        ctx.beginPath();
+        ctx.moveTo(590, 438);
+        ctx.lineTo(602, 438);
+        ctx.lineTo(596, 446);
+        ctx.fill();
+      }
+    }
+
   } else {
     // --- Layout 1: Classic Full-Screen Slide Layout (PC-3104 Standard) ---
     
@@ -1926,7 +1999,7 @@ function setupADGMaker() {
   DOM.adgWindow.addEventListener("mousedown", focusAdg);
 
   // Start Menu Programs launch
-  DOM.startProgramPixel.addEventListener("click", () => {
+  bindInteractive(DOM.startProgramPixel, () => {
     SoundFX.playClick();
     DOM.startMenuBox.classList.add("hidden");
     DOM.appWindow.classList.remove("minimized");
@@ -1934,7 +2007,7 @@ function setupADGMaker() {
     focusApp();
   });
 
-  DOM.startProgramAdg.addEventListener("click", () => {
+  bindInteractive(DOM.startProgramAdg, () => {
     SoundFX.playClick();
     DOM.startMenuBox.classList.add("hidden");
     DOM.adgWindow.classList.remove("hidden");
@@ -1944,7 +2017,7 @@ function setupADGMaker() {
   });
 
   // App Shortcut Icon setup
-  DOM.iconAdgMaker.addEventListener("click", () => {
+  bindInteractive(DOM.iconAdgMaker, () => {
     SoundFX.playClick();
     DOM.adgWindow.classList.remove("hidden");
     DOM.adgWindow.classList.remove("minimized");
@@ -1953,7 +2026,7 @@ function setupADGMaker() {
   });
 
   // Taskbar Tab setup
-  DOM.taskAdgTab.addEventListener("click", () => {
+  bindInteractive(DOM.taskAdgTab, () => {
     SoundFX.playClick();
     if (DOM.adgWindow.classList.contains("minimized")) {
       DOM.adgWindow.classList.remove("minimized");
@@ -2033,6 +2106,7 @@ function setupADGMaker() {
   });
 
   DOM.adgCharName.addEventListener("input", () => {
+    saveADGSettings();
     if (!DOM.adgTypewriter.checked) {
       triggerTypewriter();
     } else {
@@ -2041,6 +2115,7 @@ function setupADGMaker() {
   });
 
   DOM.adgDialogText.addEventListener("input", () => {
+    saveADGSettings();
     // If not typewriter, render instantly on type
     if (!DOM.adgTypewriter.checked) {
       triggerTypewriter();
@@ -2049,6 +2124,7 @@ function setupADGMaker() {
 
   DOM.adgTextColor.addEventListener("change", () => {
     SoundFX.playClick();
+    saveADGSettings();
     drawADGComposition();
   });
 
@@ -2060,15 +2136,18 @@ function setupADGMaker() {
     } else {
       DOM.adgDetectiveControls.classList.add("hidden");
     }
+    saveADGSettings();
     triggerTypewriter();
   });
 
   DOM.adgCommandsList.addEventListener("input", () => {
+    saveADGSettings();
     drawADGComposition();
   });
 
   DOM.adgCommandCursor.addEventListener("change", () => {
     SoundFX.playClick();
+    saveADGSettings();
     drawADGComposition();
   });
 
@@ -2117,6 +2196,9 @@ function setupADGMaker() {
   document.getElementById("menu-adg-save-gif").addEventListener("click", () => {
     startADGGifRecording();
   });
+
+  // Load persisted settings on startup!
+  loadADGSettings();
 }
 
 function downloadADGImage() {
@@ -2277,5 +2359,42 @@ function showExportPreview(src) {
     }
 
     DOM.exportDialog.classList.remove("hidden");
+  }
+}
+
+// --- Persist ADG Maker inputs to localStorage ---
+function saveADGSettings() {
+  const settings = {
+    charName: DOM.adgCharName.value,
+    dialogText: DOM.adgDialogText.value,
+    layoutStyle: State.adgLayoutStyle,
+    textColor: DOM.adgTextColor.value,
+    commandsList: DOM.adgCommandsList.value,
+    commandCursor: DOM.adgCommandCursor.value
+  };
+  localStorage.setItem("pic3104_adg_settings", JSON.stringify(settings));
+}
+
+function loadADGSettings() {
+  try {
+    const raw = localStorage.getItem("pic3104_adg_settings");
+    if (!raw) return;
+    const settings = JSON.parse(raw);
+    if (settings.charName !== undefined) DOM.adgCharName.value = settings.charName;
+    if (settings.dialogText !== undefined) DOM.adgDialogText.value = settings.dialogText;
+    if (settings.layoutStyle !== undefined) {
+      State.adgLayoutStyle = settings.layoutStyle;
+      DOM.adgLayoutStyle.value = settings.layoutStyle;
+      if (settings.layoutStyle === "detective-command") {
+        DOM.adgDetectiveControls.classList.remove("hidden");
+      } else {
+        DOM.adgDetectiveControls.classList.add("hidden");
+      }
+    }
+    if (settings.textColor !== undefined) DOM.adgTextColor.value = settings.textColor;
+    if (settings.commandsList !== undefined) DOM.adgCommandsList.value = settings.commandsList;
+    if (settings.commandCursor !== undefined) DOM.adgCommandCursor.value = settings.commandCursor;
+  } catch (e) {
+    console.error("Failed to load ADG settings:", e);
   }
 }
