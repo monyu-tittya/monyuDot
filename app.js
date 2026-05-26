@@ -1912,9 +1912,14 @@ function setupADGMaker() {
     DOM.appWindow.classList.remove("active");
     DOM.taskAdgTab.classList.add("active");
     DOM.taskAppTab.classList.remove("active");
+    startADGAnimationLoop();
+  };
+
+  // Full initialization when the ADG window is first opened or restored from hidden/minimized
+  const openAdg = () => {
+    focusAdg();
     refreshLibraryUI();
     loadADGBackground();
-    startADGAnimationLoop();
   };
 
   DOM.appWindow.addEventListener("mousedown", focusApp);
@@ -1935,7 +1940,7 @@ function setupADGMaker() {
     DOM.adgWindow.classList.remove("hidden");
     DOM.adgWindow.classList.remove("minimized");
     DOM.taskAdgTab.classList.remove("hidden");
-    focusAdg();
+    openAdg();
   });
 
   // App Shortcut Icon setup
@@ -1944,7 +1949,7 @@ function setupADGMaker() {
     DOM.adgWindow.classList.remove("hidden");
     DOM.adgWindow.classList.remove("minimized");
     DOM.taskAdgTab.classList.remove("hidden");
-    focusAdg();
+    openAdg();
   });
 
   // Taskbar Tab setup
@@ -1952,7 +1957,7 @@ function setupADGMaker() {
     SoundFX.playClick();
     if (DOM.adgWindow.classList.contains("minimized")) {
       DOM.adgWindow.classList.remove("minimized");
-      focusAdg();
+      openAdg();
     } else {
       if (DOM.adgWindow.classList.contains("active")) {
         DOM.adgWindow.classList.add("minimized");
