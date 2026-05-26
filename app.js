@@ -104,6 +104,63 @@ const SoundFX = {
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.15);
+  },
+
+  playThunder() {
+    if (!this.enabled || !this.ctx) return;
+    this.init();
+    
+    const now = this.ctx.currentTime;
+    
+    // Create oscillator for low-frequency rumble
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(45, now);
+    osc.frequency.exponentialRampToValueAtTime(10, now + 1.8);
+    
+    // Lowpass filter to make it muddy and deep
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(120, now);
+    filter.frequency.exponentialRampToValueAtTime(20, now + 1.8);
+    
+    // Noise buffer for the lightning crack & storm hiss
+    const bufferSize = this.ctx.sampleRate * 2.0; // 2 seconds
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const noiseGain = this.ctx.createGain();
+    
+    // Envelope for lightning crack
+    noiseGain.gain.setValueAtTime(0.12, now); // loud crack
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); // quick crack decay
+    
+    // Envelope for deep rumble
+    oscGain.gain.setValueAtTime(0.15, now);
+    oscGain.gain.linearRampToValueAtTime(0.25, now + 0.1); // rumble grows slightly
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8); // slow rumble fade
+    
+    // Connect
+    noise.connect(noiseGain);
+    noiseGain.connect(filter);
+    
+    osc.connect(oscGain);
+    oscGain.connect(filter);
+    
+    filter.connect(this.ctx.destination);
+    
+    noise.start(now);
+    noise.stop(now + 2.0);
+    
+    osc.start(now);
+    osc.stop(now + 2.0);
   }
 };
 
@@ -241,7 +298,10 @@ const State = {
   adgLoopRunning: false,
   adgLayoutStyle: "still-full",
   adgCommandsListText: "ばしょいどう\nはなせ\nしらべろ\nみせろ\nよべ\nスマホつかえ\nもちものみろ",
-  adgCommandCursorIndex: 0
+  adgCommandCursorIndex: 0,
+  adgWeatherEffect: "none",
+  adgWeatherAudioNodes: [],
+  adgThunderFlashTime: 0
 };
 
 // --- DOM References ---
@@ -329,6 +389,8 @@ const DOM = {
   adgDetectiveControls: document.getElementById("adg-detective-controls"),
   adgCommandsList: document.getElementById("adg-commands-list"),
   adgCommandCursor: document.getElementById("adg-command-cursor"),
+  adgWeatherEffect: document.getElementById("adg-weather-effect"),
+  btnAdgThunder: document.getElementById("btn-adg-thunder"),
 };
 
 // --- Initialization ---
@@ -1628,8 +1690,39 @@ function loadADGBackground() {
   img.src = State.adgBackgroundImgData;
 }
 
+function parseTypewriterText(text) {
+  const steps = [];
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "[") {
+      const closingIdx = text.indexOf("]", i);
+      if (closingIdx !== -1) {
+        const tag = text.slice(i + 1, closingIdx);
+        if (tag === "w") {
+          steps.push({ type: "wait", value: 500 });
+          i = closingIdx + 1;
+          continue;
+        } else if (tag.startsWith("s=")) {
+          const speed = parseInt(tag.slice(2)) || 45;
+          steps.push({ type: "speed", value: speed });
+          i = closingIdx + 1;
+          continue;
+        } else if (tag === "flash") {
+          steps.push({ type: "flash" });
+          i = closingIdx + 1;
+          continue;
+        }
+      }
+    }
+    // Standard character
+    steps.push({ type: "char", value: text[i] });
+    i++;
+  }
+  return steps;
+}
+
 function triggerTypewriter() {
-  if (State.adgTypewriterTimer) clearInterval(State.adgTypewriterTimer);
+  if (State.adgTypewriterTimer) clearTimeout(State.adgTypewriterTimer);
   
   const charName = DOM.adgCharName.value.trim();
   const dialogValue = DOM.adgDialogText.value || "あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はじまっています。";
@@ -1647,7 +1740,13 @@ function triggerTypewriter() {
   const useTypewriter = State.adgIsRecordingGif ? true : DOM.adgTypewriter.checked;
 
   if (!useTypewriter) {
-    State.adgDisplayedText = fullText;
+    // Strip tags for instant drawing
+    let cleanText = "";
+    const parsed = parseTypewriterText(fullText);
+    parsed.forEach(step => {
+      if (step.type === "char") cleanText += step.value;
+    });
+    State.adgDisplayedText = cleanText;
     State.adgTypingComplete = true;
     drawADGComposition();
     return;
@@ -1657,25 +1756,42 @@ function triggerTypewriter() {
   State.adgTypewriterIndex = 0;
   State.adgTypingComplete = false;
 
-  State.adgTypewriterTimer = setInterval(() => {
-    if (State.adgTypewriterIndex < fullText.length) {
-      const char = fullText[State.adgTypewriterIndex];
-      State.adgDisplayedText += char;
+  const steps = parseTypewriterText(fullText);
+  let currentDelay = 45;
+
+  const runStep = () => {
+    if (State.adgTypewriterIndex < steps.length) {
+      const step = steps[State.adgTypewriterIndex];
       State.adgTypewriterIndex++;
       
-      // Play retro 8-bit typewriter clicking synth sound!
-      if (char !== " " && char !== "\n") {
-        SoundFX.playClick();
-      }
+      let nextDelay = currentDelay;
       
-      drawADGComposition();
+      if (step.type === "char") {
+        State.adgDisplayedText += step.value;
+        if (step.value !== " " && step.value !== "\n") {
+          SoundFX.playClick();
+        }
+        drawADGComposition();
+      } else if (step.type === "speed") {
+        currentDelay = step.value;
+        nextDelay = 0; // instantly run next step
+      } else if (step.type === "wait") {
+        nextDelay = step.value;
+      } else if (step.type === "flash") {
+        SoundFX.playThunder();
+        State.adgThunderFlashTime = Date.now();
+        drawADGComposition();
+        nextDelay = 0; // instantly run next step
+      }
       
       // Capture frame for GIF
-      if (State.adgIsRecordingGif) {
+      if (State.adgIsRecordingGif && step.type === "char") {
         State.adgGifFrames.push(DOM.adgPreviewCanvas.toDataURL("image/png"));
-        const progress = Math.min(80, Math.round((State.adgTypewriterIndex / fullText.length) * 80));
+        const progress = Math.min(80, Math.round((State.adgTypewriterIndex / steps.length) * 80));
         DOM.adgStatusText.textContent = `GIF録画中 (タイピング): ${progress}%`;
       }
+      
+      State.adgTypewriterTimer = setTimeout(runStep, nextDelay);
     } else {
       // Typing finished
       if (State.adgIsRecordingGif) {
@@ -1688,19 +1804,21 @@ function triggerTypewriter() {
           const totalBlinkFrames = 60;
           const progress = 80 + Math.round(((totalBlinkFrames - State.adgBlinkFramesCount) / totalBlinkFrames) * 20);
           DOM.adgStatusText.textContent = `GIF録画中 (カーソル点滅): ${progress}%`;
+          
+          State.adgTypewriterTimer = setTimeout(runStep, 45);
         } else {
-          clearInterval(State.adgTypewriterTimer);
           State.adgTypingComplete = true;
           drawADGComposition();
           compileADGGif();
         }
       } else {
-        clearInterval(State.adgTypewriterTimer);
         State.adgTypingComplete = true;
         drawADGComposition();
       }
     }
-  }, 45); // ~22 chars per second, standard retro speed
+  };
+  
+  State.adgTypewriterTimer = setTimeout(runStep, currentDelay);
 }
 
 // --- Non-Anti-Aliased Pixelated Text Rendering Utility ---
@@ -1935,7 +2053,19 @@ function drawADGComposition() {
 
     lines.forEach((line, idx) => {
       if (idx < 10) { // Limit to 10 lines max for classic spacious look
-        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "22px 'DotGothic16', monospace", textColor);
+        let currentFont = "22px 'DotGothic16', monospace";
+        let drawText = line;
+        let lineOffset = 0;
+        if (line.startsWith("[XL]")) {
+          currentFont = "bold 34px 'DotGothic16', monospace";
+          drawText = line.slice(4);
+          lineOffset = 4;
+        } else if (line.startsWith("[L]")) {
+          currentFont = "bold 27px 'DotGothic16', monospace";
+          drawText = line.slice(3);
+          lineOffset = 2;
+        }
+        drawPixelatedText(ctx, drawText, startX, startY + (idx * lineSpacing) + lineOffset, currentFont, textColor);
       }
     });
 
@@ -2107,7 +2237,19 @@ function drawADGComposition() {
 
     lines.forEach((line, idx) => {
       if (idx < 3) { // Draw up to 3 lines max
-        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "15px 'DotGothic16', monospace", textColor);
+        let currentFont = "15px 'DotGothic16', monospace";
+        let drawText = line;
+        let lineOffset = 0;
+        if (line.startsWith("[XL]")) {
+          currentFont = "bold 24px 'DotGothic16', monospace";
+          drawText = line.slice(4);
+          lineOffset = 3;
+        } else if (line.startsWith("[L]")) {
+          currentFont = "bold 19px 'DotGothic16', monospace";
+          drawText = line.slice(3);
+          lineOffset = 1;
+        }
+        drawPixelatedText(ctx, drawText, startX, startY + (idx * lineSpacing) + lineOffset, currentFont, textColor);
       }
     });
 
@@ -2120,6 +2262,82 @@ function drawADGComposition() {
         ctx.lineTo(602, 438);
         ctx.lineTo(596, 446);
         ctx.fill();
+      }
+    }
+
+    // --- Environment / Weather Effect Visual Overlays ---
+    if (State.adgWeatherEffect === "rain") {
+      ctx.lineWidth = 1;
+      if (State.adgLayoutStyle === "gameboy") {
+        // Draw inside Gameboy screen only
+        ctx.strokeStyle = "rgba(15, 56, 15, 0.4)"; // Gameboy dark green rain
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(136, 54, 368, 294);
+        ctx.clip();
+        for (let i = 0; i < 20; i++) {
+          const seed = Math.sin(i * 123.45 + Date.now() / 150);
+          const x = 136 + (Math.abs(seed * 368) % 368);
+          const y = 54 + ((Math.abs(seed * 48271) + (Date.now() / 2) % 294) % 294);
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x - 1, y + 10);
+          ctx.stroke();
+        }
+        ctx.restore();
+      } else {
+        // Full screen rain
+        ctx.strokeStyle = "rgba(174, 194, 224, 0.35)";
+        for (let i = 0; i < 40; i++) {
+          const seed = Math.sin(i * 123.45 + Date.now() / 150);
+          const x = Math.abs(seed * 640) % 640;
+          const y = (Math.abs(seed * 48271) + (Date.now() / 2) % 480) % 480;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x - 2, y + 14);
+          ctx.stroke();
+        }
+      }
+    } else if (State.adgWeatherEffect === "blizzard") {
+      if (State.adgLayoutStyle === "gameboy") {
+        // Draw inside Gameboy screen only
+        ctx.fillStyle = "rgba(139, 172, 15, 0.8)"; // Gameboy light green snow
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(136, 54, 368, 294);
+        ctx.clip();
+        for (let i = 0; i < 25; i++) {
+          const seed = Math.cos(i * 987.65 + Date.now() / 120);
+          const x = 136 + ((Math.abs(seed * 468) - (Date.now() / 1.5) % 468 + 468) % 368);
+          const y = 54 + ((Math.abs(seed * 294) + (Date.now() / 2.5) % 294) % 294);
+          const size = Math.abs(seed * 123) % 2 + 1;
+          ctx.fillRect(x, y, size, size);
+        }
+        ctx.restore();
+      } else {
+        // Full screen blizzard
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        for (let i = 0; i < 50; i++) {
+          const seed = Math.cos(i * 987.65 + Date.now() / 120);
+          const x = (Math.abs(seed * 840) - (Date.now() / 1.5) % 840 + 840) % 640;
+          const y = (Math.abs(seed * 480) + (Date.now() / 2.5) % 480) % 480;
+          const size = Math.abs(seed * 123) % 3 + 1;
+          ctx.fillRect(x, y, size, size);
+        }
+      }
+    }
+
+    // --- Thunder Flash Overlay ---
+    if (State.adgThunderFlashTime > 0) {
+      const elapsed = Date.now() - State.adgThunderFlashTime;
+      if (elapsed < 150) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+        ctx.fillRect(0, 0, 640, 480);
+      } else if (elapsed < 300) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+        ctx.fillRect(0, 0, 640, 480);
+      } else {
+        State.adgThunderFlashTime = 0; // reset
       }
     }
   }
@@ -2297,6 +2515,26 @@ function setupADGMaker() {
     }
   });
 
+  // Bind Retro tags insert toolbar buttons
+  const adgTagButtons = DOM.adgWindow.querySelectorAll(".btn-adg-tag");
+  adgTagButtons.forEach(btn => {
+    bindInteractive(btn, () => {
+      SoundFX.playClick();
+      const tag = btn.dataset.tag;
+      const textarea = DOM.adgDialogText;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const val = textarea.value;
+      
+      textarea.value = val.substring(0, start) + tag + val.substring(end);
+      textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+      textarea.focus();
+      
+      textarea.dispatchEvent(new Event("input"));
+      triggerTypewriter();
+    });
+  });
+
   DOM.adgTextColor.addEventListener("change", () => {
     SoundFX.playClick();
     saveADGSettings();
@@ -2323,6 +2561,20 @@ function setupADGMaker() {
   DOM.adgCommandCursor.addEventListener("change", () => {
     SoundFX.playClick();
     saveADGSettings();
+    drawADGComposition();
+  });
+
+  DOM.adgWeatherEffect.addEventListener("change", (e) => {
+    SoundFX.playClick();
+    State.adgWeatherEffect = e.target.value;
+    saveADGSettings();
+    updateWeatherAudio();
+    drawADGComposition();
+  });
+
+  DOM.btnAdgThunder.addEventListener("click", () => {
+    SoundFX.playThunder();
+    State.adgThunderFlashTime = Date.now();
     drawADGComposition();
   });
 
@@ -2545,7 +2797,8 @@ function saveADGSettings() {
     layoutStyle: State.adgLayoutStyle,
     textColor: DOM.adgTextColor.value,
     commandsList: DOM.adgCommandsList.value,
-    commandCursor: DOM.adgCommandCursor.value
+    commandCursor: DOM.adgCommandCursor.value,
+    weatherEffect: DOM.adgWeatherEffect.value
   };
   localStorage.setItem("pic3104_adg_settings", JSON.stringify(settings));
 }
@@ -2569,7 +2822,111 @@ function loadADGSettings() {
     if (settings.textColor !== undefined) DOM.adgTextColor.value = settings.textColor;
     if (settings.commandsList !== undefined) DOM.adgCommandsList.value = settings.commandsList;
     if (settings.commandCursor !== undefined) DOM.adgCommandCursor.value = settings.commandCursor;
+    if (settings.weatherEffect !== undefined) {
+      DOM.adgWeatherEffect.value = settings.weatherEffect;
+      State.adgWeatherEffect = settings.weatherEffect;
+      setTimeout(updateWeatherAudio, 100); // Wait for AudioContext initialization
+    }
   } catch (e) {
     console.error("Failed to load ADG settings:", e);
+  }
+}
+
+// --- Synthesized Weather Environmental Sound Effects ---
+function updateWeatherAudio() {
+  if (!SoundFX.enabled) {
+    stopWeatherAudio();
+    return;
+  }
+  SoundFX.init();
+  if (!SoundFX.ctx) return;
+  
+  stopWeatherAudio();
+  
+  const effect = State.adgWeatherEffect;
+  if (effect === "none") return;
+  
+  State.adgWeatherAudioNodes = [];
+  
+  if (effect === "rain") {
+    // Rain pitter patter: modulated white noise bandpass filter
+    const bufferSize = SoundFX.ctx.sampleRate * 2.0;
+    const buffer = SoundFX.ctx.createBuffer(1, bufferSize, SoundFX.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = SoundFX.ctx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+    
+    const filter = SoundFX.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 1400; // Rain frequency
+    filter.Q.value = 1.0;
+    
+    const gain = SoundFX.ctx.createGain();
+    gain.gain.value = 0.02; // soft hum
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(SoundFX.ctx.destination);
+    
+    noise.start(0);
+    State.adgWeatherAudioNodes.push(noise, gain);
+  } else if (effect === "blizzard") {
+    // Blizzard wind: Sweeping white noise modulated with a slow LFO
+    const bufferSize = SoundFX.ctx.sampleRate * 2.0;
+    const buffer = SoundFX.ctx.createBuffer(1, bufferSize, SoundFX.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = SoundFX.ctx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+    
+    const filter = SoundFX.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 550;
+    filter.Q.value = 2.0;
+    
+    const gain = SoundFX.ctx.createGain();
+    gain.gain.value = 0.035; // wind howling
+    
+    // Slow sweeping LFO oscillator (modulates wind frequency)
+    const osc = SoundFX.ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = 0.15; // 0.15Hz slow sweep
+    
+    const oscGain = SoundFX.ctx.createGain();
+    oscGain.gain.value = 300; // +/- 300Hz sweep range
+    
+    osc.connect(oscGain);
+    oscGain.connect(filter.frequency);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(SoundFX.ctx.destination);
+    
+    noise.start(0);
+    osc.start(0);
+    State.adgWeatherAudioNodes.push(noise, osc, gain);
+  }
+}
+
+function stopWeatherAudio() {
+  if (State.adgWeatherAudioNodes) {
+    State.adgWeatherAudioNodes.forEach(node => {
+      try {
+        node.stop();
+      } catch(e) {}
+      try {
+        node.disconnect();
+      } catch(e) {}
+    });
+    State.adgWeatherAudioNodes = [];
   }
 }
