@@ -2056,13 +2056,28 @@ function drawADGComposition() {
 
     // 5. Draw Dialogue inside bottom box (X=40, Y=302)
     const lines = State.adgDisplayedText.split("\n");
-    const lineSpacing = 24;
     const startX = 40;
     const startY = 302; // 284 + 18 offset
+    let currentY = startY;
 
     lines.forEach((line, idx) => {
       if (idx < 5) { // Draw up to 5 lines inside rounded rect
-        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "15px 'DotGothic16', monospace", textColor);
+        let currentFont = "15px 'DotGothic16', monospace";
+        let drawText = line;
+        let lineSpacing = 24; // standard spacing for 15px font
+        
+        if (line.startsWith("[XL]")) {
+          currentFont = "bold 24px 'DotGothic16', monospace";
+          drawText = line.slice(4);
+          lineSpacing = 32; // larger spacing to prevent overlap
+        } else if (line.startsWith("[L]")) {
+          currentFont = "bold 19px 'DotGothic16', monospace";
+          drawText = line.slice(3);
+          lineSpacing = 28;
+        }
+        
+        drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor);
+        currentY += lineSpacing;
       }
     });
 
@@ -2096,25 +2111,28 @@ function drawADGComposition() {
 
     // 3. Draw Dialogue lines spanning the full screen (Authentic large font SFC style)
     const lines = State.adgDisplayedText.split("\n");
-    const lineSpacing = 36; // Larger line spacing for comfortable reading
     const startX = 48;
     const startY = 54;
+    let currentY = startY;
 
     lines.forEach((line, idx) => {
       if (idx < 10) { // Limit to 10 lines max for classic spacious look
         let currentFont = "22px 'DotGothic16', monospace";
         let drawText = line;
-        let lineOffset = 0;
+        let lineSpacing = 36; // standard line spacing for 22px
+        
         if (line.startsWith("[XL]")) {
           currentFont = "bold 34px 'DotGothic16', monospace";
           drawText = line.slice(4);
-          lineOffset = 4;
+          lineSpacing = 52; // larger spacing to prevent overlap
         } else if (line.startsWith("[L]")) {
           currentFont = "bold 27px 'DotGothic16', monospace";
           drawText = line.slice(3);
-          lineOffset = 2;
+          lineSpacing = 44;
         }
-        drawPixelatedText(ctx, drawText, startX, startY + (idx * lineSpacing) + lineOffset, currentFont, textColor);
+        
+        drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor);
+        currentY += lineSpacing;
       }
     });
 
@@ -2280,25 +2298,27 @@ function drawADGComposition() {
 
     // 4. Draw Dialogue lines
     const lines = State.adgDisplayedText.split("\n");
-    const lineSpacing = 24;
     const startX = 32;
     const startY = charName ? 388 : 370; // Pushed down to Y=388 to leave a comfortable 38px gap from Y=350 (approx 23px of clear space between text blocks)
+    let currentY = startY;
 
     lines.forEach((line, idx) => {
       if (idx < 3) { // Draw up to 3 lines max
         let currentFont = "15px 'DotGothic16', monospace";
         let drawText = line;
-        let lineOffset = 0;
+        let lineSpacing = 24; // standard spacing for 15px font
+        
         if (line.startsWith("[XL]")) {
           currentFont = "bold 24px 'DotGothic16', monospace";
           drawText = line.slice(4);
-          lineOffset = 3;
+          lineSpacing = 32;
         } else if (line.startsWith("[L]")) {
           currentFont = "bold 19px 'DotGothic16', monospace";
           drawText = line.slice(3);
-          lineOffset = 1;
+          lineSpacing = 28;
         }
-        drawPixelatedText(ctx, drawText, startX, startY + (idx * lineSpacing) + lineOffset, currentFont, textColor);
+        drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor);
+        currentY += lineSpacing;
       }
     });
 
