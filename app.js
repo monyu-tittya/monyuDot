@@ -16,6 +16,163 @@ const SoundFX = {
     }
   },
 
+  bgmPlayer: {
+    isPlaying: false,
+    timer: null,
+    currentStep: 0,
+    tempo: 110,
+    nextNoteTime: 0.0,
+    scheduleAheadTime: 0.1,
+    gainNode: null,
+    selectedBgm: "none",
+
+    tracks: {
+      "suspense": {
+        tempo: 100,
+        bass: ["C2", "", "C#2", "", "C2", "", "G#1", "", "C2", "", "C#2", "", "C2", "", "G#1", ""],
+        lead: ["C4", "", "D#4", "", "G4", "", "F#4", "", "F4", "", "D4", "", "D#4", "", "C4", ""]
+      },
+      "adventure": {
+        tempo: 130,
+        bass: ["C3", "G3", "E3", "G3", "F3", "C4", "A3", "C4", "G3", "D4", "B3", "D4", "C3", "G3", "E3", "G3"],
+        lead: ["E4", "G4", "C5", "E5", "D5", "B4", "G4", "B4", "C5", "E4", "G4", "C5", "D5", "B4", "G4", "B4"]
+      }
+    },
+
+    noteToFreq(note) {
+      if (!note) return 0;
+      const notes = {
+        "A": 440.00, "A#": 466.16, "B": 493.88, "C": 261.63, "C#": 277.18, "D": 293.66,
+        "D#": 311.13, "E": 329.63, "F": 349.23, "F#": 369.99, "G": 392.00, "G#": 415.30
+      };
+      const match = note.match(/^([A-G]#?)(\d)$/);
+      if (!match) return 0;
+      const key = match[1];
+      const octave = parseInt(match[2]);
+      const baseFreq = notes[key];
+      let freq = baseFreq;
+      if (key === "C" || key === "C#" || key === "D" || key === "D#" || key === "E" || key === "F" || key === "F#" || key === "G" || key === "G#") {
+        freq = baseFreq * 2;
+      }
+      const diff = octave - 4;
+      return freq * Math.pow(2, diff);
+    },
+
+    scheduler() {
+      if (!SoundFX.ctx) return;
+      while (this.nextNoteTime < SoundFX.ctx.currentTime + this.scheduleAheadTime) {
+        this.scheduleNote(this.currentStep, this.nextNoteTime);
+        this.advanceStep();
+      }
+    },
+
+    advanceStep() {
+      const secondsPerBeat = 60.0 / this.tempo;
+      const secondsPerStep = secondsPerBeat / 4;
+      this.nextNoteTime += secondsPerStep;
+      this.currentStep = (this.currentStep + 1) % 16;
+    },
+
+    scheduleNote(step, time) {
+      const track = this.tracks[this.selectedBgm];
+      if (!track) return;
+
+      const bassNote = track.bass[step];
+      const leadNote = track.lead[step];
+
+      if (bassNote) {
+        const freq = this.noteToFreq(bassNote);
+        if (freq > 0) {
+          const osc = SoundFX.ctx.createOscillator();
+          const gain = SoundFX.ctx.createGain();
+
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(freq, time);
+
+          const filter = SoundFX.ctx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(300, time);
+          filter.frequency.exponentialRampToValueAtTime(100, time + 0.2);
+
+          gain.gain.setValueAtTime(0.04, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.gainNode);
+
+          osc.start(time);
+          osc.stop(time + 0.25);
+        }
+      }
+
+      if (leadNote) {
+        const freq = this.noteToFreq(leadNote);
+        if (freq > 0) {
+          const osc = SoundFX.ctx.createOscillator();
+          const gain = SoundFX.ctx.createGain();
+
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, time);
+
+          osc.frequency.setValueAtTime(freq, time);
+          osc.frequency.linearRampToValueAtTime(freq + 4, time + 0.08);
+          osc.frequency.linearRampToValueAtTime(freq - 4, time + 0.16);
+
+          gain.gain.setValueAtTime(0.0, time);
+          gain.gain.linearRampToValueAtTime(0.05, time + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+          osc.connect(gain);
+          gain.connect(this.gainNode);
+
+          osc.start(time);
+          osc.stop(time + 0.22);
+        }
+      }
+    },
+
+    start(bgmKey) {
+      if (!SoundFX.enabled || !bgmKey || bgmKey === "none") {
+        this.stop();
+        return;
+      }
+
+      SoundFX.init();
+      if (!SoundFX.ctx) return;
+
+      this.stop();
+      this.selectedBgm = bgmKey;
+      this.tempo = this.tracks[bgmKey].tempo;
+      this.currentStep = 0;
+      this.isPlaying = true;
+      this.nextNoteTime = SoundFX.ctx.currentTime + 0.05;
+
+      this.gainNode = SoundFX.ctx.createGain();
+      this.gainNode.gain.setValueAtTime(0.18, SoundFX.ctx.currentTime);
+      this.gainNode.connect(SoundFX.ctx.destination);
+
+      this.timer = setInterval(() => {
+        this.scheduler();
+      }, 25);
+    },
+
+    stop() {
+      this.isPlaying = false;
+      this.selectedBgm = "none";
+      if (this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
+      if (this.gainNode) {
+        try {
+          this.gainNode.disconnect();
+        } catch (e) { }
+        this.gainNode = null;
+      }
+    }
+  },
+
   playClick() {
     if (!this.enabled || !this.ctx) return;
     this.init();
@@ -300,6 +457,7 @@ const State = {
   adgCommandsListText: "ばしょいどう\nはなせ\nしらべろ\nみせろ\nよべ\nスマホつかえ\nもちものみろ",
   adgCommandCursorIndex: 0,
   adgWeatherEffect: "none",
+  adgBgmPreset: "none",
   adgWeatherAudioNodes: [],
   adgThunderFlashTime: 0
 };
@@ -390,6 +548,7 @@ const DOM = {
   adgCommandsList: document.getElementById("adg-commands-list"),
   adgCommandCursor: document.getElementById("adg-command-cursor"),
   adgWeatherEffect: document.getElementById("adg-weather-effect"),
+  adgBgmPreset: document.getElementById("adg-bgm-preset"),
   btnAdgThunder: document.getElementById("btn-adg-thunder"),
 };
 
@@ -673,9 +832,16 @@ function toggleSound() {
     DOM.traySoundIcon.className = "sound-icon-on";
     DOM.startSoundToggle.innerHTML = '<span class="menu-icon icon-audio"></span>サウンド効果: オン';
     SoundFX.playClick();
+
+    // Resume BGM if any was selected
+    const selectedBgm = DOM.adgBgmPreset ? DOM.adgBgmPreset.value : "none";
+    SoundFX.bgmPlayer.start(selectedBgm);
   } else {
     DOM.traySoundIcon.className = "sound-icon-off";
     DOM.startSoundToggle.innerHTML = '<span class="menu-icon icon-audio"></span>サウンド効果: オフ';
+
+    // Stop BGM
+    SoundFX.bgmPlayer.stop();
   }
 }
 
@@ -2342,9 +2508,9 @@ function drawADGComposition() {
     drawBezel(ctx, 80, 15, 480, 370, 12);
 
     // 3. Draw Blue/Red accent stripes at the top of the bezel
-    ctx.fillStyle = "#8a2434"; // Magenta stripe
+    ctx.fillStyle = "#b10202ff"; // Magenta stripe
     ctx.fillRect(80, 30, 480, 2);
-    ctx.fillStyle = "#1e3d59"; // Blue stripe
+    ctx.fillStyle = "#ffdb10ff"; // Blue stripe
     ctx.fillRect(80, 36, 480, 2);
 
     // 4. Draw Bezel text "DOT MATRIX WITH STEREO SOUND"
@@ -2401,14 +2567,14 @@ function drawADGComposition() {
     if (charName) {
       ctx.font = "bold 11px 'DotGothic16', monospace";
       const nameWidth = Math.ceil(ctx.measureText(charName).width) + 12;
-      
+
       // Draw nameplate box
       ctx.fillStyle = "#9bbc0f";
       ctx.fillRect(150, 248, nameWidth, 18);
       ctx.strokeStyle = "#0f380f";
       ctx.lineWidth = 2;
       ctx.strokeRect(150, 248, nameWidth, 18);
-      
+
       // Draw name text
       drawPixelatedText(ctx, charName, 156, 251, "bold 11px 'DotGothic16', monospace", "#0f380f");
     }
@@ -2868,6 +3034,13 @@ function setupADGMaker() {
     drawADGComposition();
   });
 
+  DOM.adgBgmPreset.addEventListener("change", (e) => {
+    SoundFX.playClick();
+    State.adgBgmPreset = e.target.value;
+    saveADGSettings();
+    SoundFX.bgmPlayer.start(e.target.value);
+  });
+
   DOM.btnAdgThunder.addEventListener("click", () => {
     SoundFX.playThunder();
     State.adgThunderFlashTime = Date.now();
@@ -3103,7 +3276,8 @@ function saveADGSettings() {
     textColor: DOM.adgTextColor.value,
     commandsList: DOM.adgCommandsList.value,
     commandCursor: DOM.adgCommandCursor.value,
-    weatherEffect: DOM.adgWeatherEffect.value
+    weatherEffect: DOM.adgWeatherEffect.value,
+    bgmPreset: DOM.adgBgmPreset.value
   };
   localStorage.setItem("pic3104_adg_settings", JSON.stringify(settings));
 }
@@ -3131,6 +3305,13 @@ function loadADGSettings() {
       DOM.adgWeatherEffect.value = settings.weatherEffect;
       State.adgWeatherEffect = settings.weatherEffect;
       setTimeout(updateWeatherAudio, 100); // Wait for AudioContext initialization
+    }
+    if (settings.bgmPreset !== undefined) {
+      DOM.adgBgmPreset.value = settings.bgmPreset;
+      State.adgBgmPreset = settings.bgmPreset;
+      setTimeout(() => {
+        SoundFX.bgmPlayer.start(settings.bgmPreset);
+      }, 200); // Wait for AudioContext initialization
     }
   } catch (e) {
     console.error("Failed to load ADG settings:", e);
