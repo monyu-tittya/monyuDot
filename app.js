@@ -409,7 +409,111 @@ window.addEventListener("DOMContentLoaded", () => {
   
   // Initialize ADG Maker Extensions
   setupADGMaker();
+
+  // Load and restore previous window states
+  loadWindowStates();
 });
+
+// --- Overlapping Focus Window manager & State Persistence ---
+
+function saveWindowStates() {
+  const state = {
+    app: {
+      hidden: DOM.appWindow.classList.contains("hidden"),
+      minimized: DOM.appWindow.classList.contains("minimized"),
+      active: DOM.appWindow.classList.contains("active")
+    },
+    adg: {
+      hidden: DOM.adgWindow.classList.contains("hidden"),
+      minimized: DOM.adgWindow.classList.contains("minimized"),
+      active: DOM.adgWindow.classList.contains("active")
+    }
+  };
+  localStorage.setItem("pic3104_window_states", JSON.stringify(state));
+}
+
+function loadWindowStates() {
+  try {
+    const saved = localStorage.getItem("pic3104_window_states");
+    if (!saved) return;
+    const state = JSON.parse(saved);
+
+    // Restore App Window
+    if (state.app.hidden) {
+      DOM.appWindow.classList.add("hidden");
+      DOM.taskAppTab.classList.add("hidden");
+    } else {
+      DOM.appWindow.classList.remove("hidden");
+      DOM.taskAppTab.classList.remove("hidden");
+    }
+    if (state.app.minimized) {
+      DOM.appWindow.classList.add("minimized");
+      DOM.taskAppTab.classList.remove("active");
+    } else {
+      DOM.appWindow.classList.remove("minimized");
+      if (state.app.active) {
+        DOM.appWindow.classList.add("active");
+        DOM.taskAppTab.classList.add("active");
+      }
+    }
+
+    // Restore ADG Window
+    if (state.adg.hidden) {
+      DOM.adgWindow.classList.add("hidden");
+      DOM.taskAdgTab.classList.add("hidden");
+    } else {
+      DOM.adgWindow.classList.remove("hidden");
+      DOM.taskAdgTab.classList.remove("hidden");
+    }
+    if (state.adg.minimized) {
+      DOM.adgWindow.classList.add("minimized");
+      DOM.taskAdgTab.classList.remove("active");
+    } else {
+      DOM.adgWindow.classList.remove("minimized");
+      if (state.adg.active) {
+        DOM.adgWindow.classList.add("active");
+        DOM.taskAdgTab.classList.add("active");
+        if (typeof startADGAnimationLoop === "function") {
+          startADGAnimationLoop();
+        }
+      }
+    }
+
+    // Sync active tabs correctly
+    if (state.app.active && !state.app.minimized && !state.app.hidden) {
+      DOM.appWindow.classList.add("active");
+      DOM.taskAppTab.classList.add("active");
+      DOM.adgWindow.classList.remove("active");
+      DOM.taskAdgTab.classList.remove("active");
+    } else if (state.adg.active && !state.adg.minimized && !state.adg.hidden) {
+      DOM.adgWindow.classList.add("active");
+      DOM.taskAdgTab.classList.add("active");
+      DOM.appWindow.classList.remove("active");
+      DOM.taskAppTab.classList.remove("active");
+    }
+  } catch (e) {
+    console.error("Failed to load window states:", e);
+  }
+}
+
+function focusApp() {
+  DOM.appWindow.classList.add("active");
+  DOM.adgWindow.classList.remove("active");
+  DOM.taskAppTab.classList.add("active");
+  DOM.taskAdgTab.classList.remove("active");
+  saveWindowStates();
+}
+
+function focusAdg() {
+  DOM.adgWindow.classList.add("active");
+  DOM.appWindow.classList.remove("active");
+  DOM.taskAdgTab.classList.add("active");
+  DOM.taskAppTab.classList.remove("active");
+  if (typeof startADGAnimationLoop === "function") {
+    startADGAnimationLoop();
+  }
+  saveWindowStates();
+}
 
 // --- System Window, Start Menu, Clock & Sound Setup ---
 
@@ -467,21 +571,32 @@ function setupDesktopShortcuts() {
     if (DOM.appWindow.classList.contains("minimized") || DOM.appWindow.classList.contains("hidden")) {
       DOM.appWindow.classList.remove("minimized");
       DOM.appWindow.classList.remove("hidden");
-      DOM.appWindow.classList.add("active");
-      DOM.taskAppTab.classList.add("active");
+      DOM.taskAppTab.classList.remove("hidden");
+      focusApp();
     } else {
-      // Toggle minimize if already active
-      DOM.appWindow.classList.toggle("minimized");
-      DOM.taskAppTab.classList.toggle("active");
+      if (DOM.appWindow.classList.contains("active")) {
+        DOM.appWindow.classList.add("minimized");
+        DOM.taskAppTab.classList.remove("active");
+        saveWindowStates();
+      } else {
+        focusApp();
+      }
     }
   });
 
   bindInteractive(DOM.taskAppTab, () => {
     SoundFX.playClick();
-    DOM.appWindow.classList.toggle("minimized");
-    DOM.taskAppTab.classList.toggle("active");
-    if (!DOM.appWindow.classList.contains("minimized")) {
-      DOM.appWindow.classList.add("active");
+    if (DOM.appWindow.classList.contains("minimized")) {
+      DOM.appWindow.classList.remove("minimized");
+      focusApp();
+    } else {
+      if (DOM.appWindow.classList.contains("active")) {
+        DOM.appWindow.classList.add("minimized");
+        DOM.taskAppTab.classList.remove("active");
+        saveWindowStates();
+      } else {
+        focusApp();
+      }
     }
   });
 }
@@ -569,13 +684,16 @@ function setupWindowControls() {
     SoundFX.playClick();
     DOM.appWindow.classList.add("minimized");
     DOM.taskAppTab.classList.remove("active");
+    saveWindowStates();
     e.stopPropagation();
   });
 
   DOM.btnClose.addEventListener("click", (e) => {
     SoundFX.playClick();
     DOM.appWindow.classList.add("hidden");
+    DOM.taskAppTab.classList.add("hidden");
     DOM.taskAppTab.classList.remove("active");
+    saveWindowStates();
     e.stopPropagation();
   });
 
@@ -2533,22 +2651,6 @@ function startADGAnimationLoop() {
 }
 
 function setupADGMaker() {
-  // Overlapping Focus Window manager
-  const focusApp = () => {
-    DOM.appWindow.classList.add("active");
-    DOM.adgWindow.classList.remove("active");
-    DOM.taskAppTab.classList.add("active");
-    DOM.taskAdgTab.classList.remove("active");
-  };
-
-  const focusAdg = () => {
-    DOM.adgWindow.classList.add("active");
-    DOM.appWindow.classList.remove("active");
-    DOM.taskAdgTab.classList.add("active");
-    DOM.taskAppTab.classList.remove("active");
-    startADGAnimationLoop();
-  };
-
   // Full initialization when the ADG window is first opened or restored from hidden/minimized
   const openAdg = () => {
     focusAdg();
@@ -2557,7 +2659,9 @@ function setupADGMaker() {
   };
 
   DOM.appWindow.addEventListener("mousedown", focusApp);
+  DOM.appWindow.addEventListener("touchstart", focusApp, { passive: true });
   DOM.adgWindow.addEventListener("mousedown", focusAdg);
+  DOM.adgWindow.addEventListener("touchstart", focusAdg, { passive: true });
 
   // Start Menu Programs launch
   bindInteractive(DOM.startProgramPixel, () => {
@@ -2565,6 +2669,7 @@ function setupADGMaker() {
     DOM.startMenuBox.classList.add("hidden");
     DOM.appWindow.classList.remove("minimized");
     DOM.appWindow.classList.remove("hidden");
+    DOM.taskAppTab.classList.remove("hidden");
     focusApp();
   });
 
@@ -2596,6 +2701,7 @@ function setupADGMaker() {
       if (DOM.adgWindow.classList.contains("active")) {
         DOM.adgWindow.classList.add("minimized");
         DOM.taskAdgTab.classList.remove("active");
+        saveWindowStates();
       } else {
         focusAdg();
       }
@@ -2633,6 +2739,7 @@ function setupADGMaker() {
     SoundFX.playClick();
     DOM.adgWindow.classList.add("minimized");
     DOM.taskAdgTab.classList.remove("active");
+    saveWindowStates();
     e.stopPropagation();
   });
 
@@ -2640,6 +2747,8 @@ function setupADGMaker() {
     SoundFX.playClick();
     DOM.adgWindow.classList.add("hidden");
     DOM.taskAdgTab.classList.add("hidden");
+    DOM.taskAdgTab.classList.remove("active");
+    saveWindowStates();
     e.stopPropagation();
   });
 
@@ -2647,6 +2756,8 @@ function setupADGMaker() {
     SoundFX.playClick();
     DOM.adgWindow.classList.add("hidden");
     DOM.taskAdgTab.classList.add("hidden");
+    DOM.taskAdgTab.classList.remove("active");
+    saveWindowStates();
   });
 
   document.getElementById("menu-adg-clear").addEventListener("click", () => {
@@ -2794,6 +2905,15 @@ function setupADGMaker() {
 
   // Load persisted settings on startup!
   loadADGSettings();
+
+  // If ADG window is visible initially, load the background and start loop!
+  if (!DOM.adgWindow.classList.contains("hidden") && !DOM.adgWindow.classList.contains("minimized")) {
+    refreshLibraryUI();
+    loadADGBackground();
+    if (typeof startADGAnimationLoop === "function") {
+      startADGAnimationLoop();
+    }
+  }
 }
 
 function downloadADGImage() {

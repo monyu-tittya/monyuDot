@@ -1349,3 +1349,11 @@ input[type="radio"], input[type="checkbox"] {
 .window.active {
   z-index: 110;
 }
+
+/* Ensure Start Menu and Modals are always on top of active/inactive windows regardless of source order */
+.start-menu.window {
+  z-index: 1000 !important;
+}
+.window.modal {
+  z-index: 2000 !important;
+}
