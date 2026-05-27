@@ -19,20 +19,20 @@ const SoundFX = {
   playClick() {
     if (!this.enabled || !this.ctx) return;
     this.init();
-    
+
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-    
+
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(800, this.ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.04);
-    
+
     gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.04);
-    
+
     osc.connect(gain);
     gain.connect(this.ctx.destination);
-    
+
     osc.start();
     osc.stop(this.ctx.currentTime + 0.04);
   },
@@ -109,22 +109,22 @@ const SoundFX = {
   playThunder() {
     if (!this.enabled || !this.ctx) return;
     this.init();
-    
+
     const now = this.ctx.currentTime;
-    
+
     // Create oscillator for low-frequency rumble
     const osc = this.ctx.createOscillator();
     const oscGain = this.ctx.createGain();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(45, now);
     osc.frequency.exponentialRampToValueAtTime(10, now + 1.8);
-    
+
     // Lowpass filter to make it muddy and deep
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(120, now);
     filter.frequency.exponentialRampToValueAtTime(20, now + 1.8);
-    
+
     // Noise buffer for the lightning crack & storm hiss
     const bufferSize = this.ctx.sampleRate * 2.0; // 2 seconds
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -132,33 +132,33 @@ const SoundFX = {
     for (let i = 0; i < bufferSize; i++) {
       data[i] = Math.random() * 2 - 1;
     }
-    
+
     const noise = this.ctx.createBufferSource();
     noise.buffer = buffer;
-    
+
     const noiseGain = this.ctx.createGain();
-    
+
     // Envelope for lightning crack
     noiseGain.gain.setValueAtTime(0.12, now); // loud crack
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); // quick crack decay
-    
+
     // Envelope for deep rumble
     oscGain.gain.setValueAtTime(0.15, now);
     oscGain.gain.linearRampToValueAtTime(0.25, now + 0.1); // rumble grows slightly
     oscGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8); // slow rumble fade
-    
+
     // Connect
     noise.connect(noiseGain);
     noiseGain.connect(filter);
-    
+
     osc.connect(oscGain);
     oscGain.connect(filter);
-    
+
     filter.connect(this.ctx.destination);
-    
+
     noise.start(now);
     noise.stop(now + 2.0);
-    
+
     osc.start(now);
     osc.stop(now + 2.0);
   }
@@ -249,13 +249,13 @@ const PalettePresets = {
 
 // Bayer 8x8 Ordered Dithering Matrix
 const Bayer8x8Matrix = [
-  [ 0, 48, 12, 60,  3, 51, 15, 63],
+  [0, 48, 12, 60, 3, 51, 15, 63],
   [32, 16, 44, 28, 35, 19, 47, 31],
-  [ 8, 56,  4, 52, 11, 59,  7, 55],
+  [8, 56, 4, 52, 11, 59, 7, 55],
   [40, 24, 36, 20, 43, 27, 39, 23],
-  [ 2, 50, 14, 62,  1, 49, 13, 61],
+  [2, 50, 14, 62, 1, 49, 13, 61],
   [34, 18, 46, 30, 33, 17, 45, 29],
-  [10, 58,  6, 54,  9, 57,  5, 53],
+  [10, 58, 6, 54, 9, 57, 5, 53],
   [42, 26, 38, 22, 41, 25, 37, 21]
 ];
 
@@ -333,7 +333,7 @@ const DOM = {
   previewContainer: document.querySelector(".preview-container"),
   outputCanvas: document.getElementById("output-canvas"),
   loadingOverlay: document.getElementById("loading-overlay"),
-  
+
   tabs: document.querySelectorAll(".tab"),
   tabPanes: document.querySelectorAll(".tab-pane"),
 
@@ -403,10 +403,10 @@ window.addEventListener("DOMContentLoaded", () => {
   setupCropDragging();
   setupClock();
   setupDesktopShortcuts();
-  
+
   // Set initial status
   updateStatus("システム起動完了。画像を選択してください。");
-  
+
   // Initialize ADG Maker Extensions
   setupADGMaker();
 
@@ -532,7 +532,7 @@ function setupClock() {
 function bindInteractive(el, handler) {
   if (!el) return;
   let touched = false;
-  
+
   const wrapper = (e) => {
     if (e.type === "touchstart") {
       touched = true;
@@ -753,7 +753,7 @@ function setupTabs() {
     tab.addEventListener("click", () => {
       SoundFX.playTabClick();
       const tabId = tab.dataset.tab;
-      
+
       DOM.tabs.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
 
@@ -815,7 +815,7 @@ function setupParameters() {
   DOM.ditherType.addEventListener("change", (e) => {
     SoundFX.playClick();
     State.ditherType = e.target.value;
-    
+
     // Show/hide dither weight slider based on dithering type
     const weightRow = document.getElementById("dither-weight-row");
     if (weightRow) {
@@ -900,7 +900,7 @@ function setupImageLoading() {
     if (!file) return;
 
     SoundFX.playRenderChime(); // Play retro synth welcome chime when starting image loading!
-    
+
     updateStatus("画像ファイルをロードしています...");
     showLoading(true);
 
@@ -910,23 +910,23 @@ function setupImageLoading() {
       img.onload = () => {
         State.sourceImage = img;
         State.currentRotation = 0;
-        
+
         // Prepare rotated Canvas container
         State.rotatedCanvas = document.createElement("canvas");
         applyRotationToCanvas();
-        
+
         // Reset cropper parameters
         resetCrop();
-        
+
         DOM.cropZoom.disabled = false;
         DOM.btnRotate.disabled = false;
         DOM.btnCropReset.disabled = false;
         DOM.btnDownload.disabled = false;
         DOM.btnSaveDisk.disabled = false;
-        
+
         // Hide placeholder and show canvases
         DOM.uploadPlaceholder.classList.add("hidden");
-        
+
         // Process pipeline
         renderPipeline();
       };
@@ -968,7 +968,7 @@ function applyRotationToCanvas() {
   const canvas = State.rotatedCanvas;
   const ctx = canvas.getContext("2d");
   const img = State.sourceImage;
-  
+
   if (State.currentRotation === 0) {
     canvas.width = img.width;
     canvas.height = img.height;
@@ -1001,7 +1001,7 @@ function resetCrop() {
 
   DOM.cropZoom.value = 1.0;
   DOM.zoomValue.textContent = "100%";
-  
+
   renderPipeline();
 }
 
@@ -1033,7 +1033,7 @@ function setupCropDragging() {
     const coords = getEventCoords(e);
     State.dragStart = coords;
     State.dragStartPan = { x: State.crop.panX, y: State.crop.panY };
-    
+
     // Disable default behavior so mobile touches do not scroll the screen while dragging crop
     if (e.type === "touchstart") {
       // Check if user is clicking on output-canvas
@@ -1046,21 +1046,21 @@ function setupCropDragging() {
   const handleMove = (e) => {
     if (!State.isDragging) return;
     const coords = getEventCoords(e);
-    
+
     const dx = coords.x - State.dragStart.x;
     const dy = coords.y - State.dragStart.y;
-    
+
     // We need to translate screen pixels dragging to normalized offset space (-0.5 to 0.5)
     // The pan shift amount depends on zoom level (more zoomed in = slower dragging)
     const bounds = DOM.outputCanvas.getBoundingClientRect();
     const dragSpeed = 1.2 / State.crop.zoom; // scaling speed
-    
+
     const deltaPanX = -(dx / bounds.width) * dragSpeed;
     const deltaPanY = -(dy / bounds.height) * dragSpeed;
-    
+
     State.crop.panX = Math.max(-0.5, Math.min(0.5, State.dragStartPan.x + deltaPanX));
     State.crop.panY = Math.max(-0.5, Math.min(0.5, State.dragStartPan.y + deltaPanY));
-    
+
     renderPipelineDebounced();
   };
 
@@ -1081,7 +1081,7 @@ function setupCropDragging() {
 
 function renderPipeline() {
   if (!State.sourceImage) return;
-  
+
   showLoading(true);
   updateStatus("減色・ディザリング処理を実行中...");
 
@@ -1089,11 +1089,11 @@ function renderPipeline() {
   requestAnimationFrame(() => {
     setTimeout(() => {
       const startTime = performance.now();
-      
+
       const rotated = State.rotatedCanvas;
       const targetW = State.targetWidth;
       const aspect = getSelectedAspectRatio();
-      
+
       // Calculate target resolution
       let targetH;
       if (aspect === -1) {
@@ -1103,7 +1103,7 @@ function renderPipeline() {
         // Fixed Aspect Ratio
         targetH = Math.round(targetW / aspect);
       }
-      
+
       // Make height an even number (optional but cleaner)
       if (targetH % 2 !== 0) targetH++;
 
@@ -1121,20 +1121,20 @@ function renderPipeline() {
           sh = rotated.width / aspect;
         }
       }
-      
+
       // Zoom factor shrinks the crop source dimensions (zooming in)
       const zoom = State.crop.zoom;
       sw = sw / zoom;
       sh = sh / zoom;
-      
+
       // Pan moves the crop center within source boundaries
       // Maximum movement bounds:
       const maxPanX = rotated.width - sw;
       const maxPanY = rotated.height - sh;
-      
+
       const cx = (rotated.width / 2) + (State.crop.panX * maxPanX);
       const cy = (rotated.height / 2) + (State.crop.panY * maxPanY);
-      
+
       // Compute final top-left crop source coordinates clamped to actual limits
       const sx = Math.max(0, Math.min(rotated.width - sw, cx - (sw / 2)));
       const sy = Math.max(0, Math.min(rotated.height - sh, cy - (sh / 2)));
@@ -1144,7 +1144,7 @@ function renderPipeline() {
       offscreen.width = targetW;
       offscreen.height = targetH;
       const offCtx = offscreen.getContext("2d");
-      
+
       // Configure image smoothing based on "retro-smooth-scaling" checkbox
       const smoothScaling = DOM.retroSmoothScaling ? DOM.retroSmoothScaling.checked : true;
       offCtx.imageSmoothingEnabled = smoothScaling;
@@ -1152,7 +1152,7 @@ function renderPipeline() {
         offCtx.imageSmoothingQuality = "high";
       }
       offCtx.drawImage(rotated, sx, sy, sw, sh, 0, 0, targetW, targetH);
-      
+
       const imgData = offCtx.getImageData(0, 0, targetW, targetH);
       const pixels = imgData.data; // flat Uint8ClampedArray [R, G, B, A]
 
@@ -1174,7 +1174,7 @@ function renderPipeline() {
       } else {
         // Preset Palettes
         let basePalette = PalettePresets[State.paletteType] || PalettePresets["pc98-system"];
-        
+
         // If monochrome checkbox is checked, map the preset's colors to green shades!
         if (State.monochrome) {
           palette = makeMonochromePalette(basePalette);
@@ -1182,7 +1182,7 @@ function renderPipeline() {
           palette = basePalette;
         }
       }
-      
+
       State.currentPalette = palette;
       renderPalettePreview(palette);
 
@@ -1216,7 +1216,7 @@ function renderPipeline() {
       // Draw offscreen result to primary output canvas
       DOM.outputCanvas.width = targetW;
       DOM.outputCanvas.height = targetH;
-      
+
       const ctx = DOM.outputCanvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(offscreen, 0, 0);
@@ -1224,7 +1224,7 @@ function renderPipeline() {
       // Step 4: Finish up!
       const endTime = performance.now();
       const processingTime = Math.round(endTime - startTime);
-      
+
       // Update UI Status and diagnostics
       DOM.statusResolution.textContent = `解像度: ${targetW} x ${targetH}`;
       DOM.statusTime.textContent = `処理速度: ${processingTime}ms`;
@@ -1250,13 +1250,13 @@ function updateStatus(text) {
 function convertToGrayscale(pixels) {
   for (let i = 0; i < pixels.length; i += 4) {
     const r = pixels[i];
-    const g = pixels[i+1];
-    const b = pixels[i+2];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
     // Perceptual grayscale formula
     const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
     pixels[i] = gray;
-    pixels[i+1] = gray;
-    pixels[i+2] = gray;
+    pixels[i + 1] = gray;
+    pixels[i + 2] = gray;
   }
 }
 
@@ -1279,7 +1279,7 @@ function renderPalettePreview(palette) {
     DOM.paletteColors.innerHTML = "<div style='grid-column: 1/-1; text-align: center; color: #555; padding-top: 15px;'>フルカラーモード（制限なし）</div>";
     return;
   }
-  
+
   palette.forEach(color => {
     const swatch = document.createElement("div");
     swatch.className = "color-swatch";
@@ -1294,11 +1294,11 @@ function getAdaptivePalette(pixels, maxColors) {
   // Extract all RGB pixel colors, ignoring transparent ones
   const rgbColors = [];
   for (let i = 0; i < pixels.length; i += 4) {
-    if (pixels[i+3] < 128) continue; // skip transparent
+    if (pixels[i + 3] < 128) continue; // skip transparent
     rgbColors.push({
       r: pixels[i],
-      g: pixels[i+1],
-      b: pixels[i+2]
+      g: pixels[i + 1],
+      b: pixels[i + 2]
     });
   }
 
@@ -1417,10 +1417,10 @@ function findClosestColor(r, g, b, palette) {
     const dr = r - pal.r;
     const dg = g - pal.g;
     const db = b - pal.b;
-    
+
     // Perceptual weighting provides more natural visual mapping
     const dSq = dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114;
-    
+
     if (dSq < minDistanceSq) {
       minDistanceSq = dSq;
       closestColor = pal;
@@ -1461,11 +1461,11 @@ function xyzToLab(x, y, z) {
   let yN = y / refY;
   let zN = z / refZ;
 
-  const fx = xN > 0.008856 ? Math.pow(xN, 1/3) : (7.787 * xN) + (16 / 116);
-  const fy = yN > 0.008856 ? Math.pow(yN, 1/3) : (7.787 * yN) + (16 / 116);
-  const fz = zN > 0.008856 ? Math.pow(zN, 1/3) : (7.787 * zN) + (16 / 116);
+  const fx = xN > 0.008856 ? Math.pow(xN, 1 / 3) : (7.787 * xN) + (16 / 116);
+  const fy = yN > 0.008856 ? Math.pow(yN, 1 / 3) : (7.787 * yN) + (16 / 116);
+  const fz = zN > 0.008856 ? Math.pow(zN, 1 / 3) : (7.787 * zN) + (16 / 116);
 
-  const L = yN > 0.008856 ? (116 * Math.pow(yN, 1/3)) - 16 : 903.3 * yN;
+  const L = yN > 0.008856 ? (116 * Math.pow(yN, 1 / 3)) - 16 : 903.3 * yN;
   const a = 500 * (fx - fy);
   const b = 200 * (fy - fz);
 
@@ -1487,7 +1487,7 @@ function findClosestColorLab(r, g, b, paletteLab, useLightnessOnly) {
   for (let i = 0; i < paletteLab.length; i++) {
     const item = paletteLab[i];
     const dL = pixelLab.L - item.Lab.L;
-    
+
     let dSq;
     if (useLightnessOnly) {
       dSq = dL * dL; // Match purely by lightness/brightness!
@@ -1496,7 +1496,7 @@ function findClosestColorLab(r, g, b, paletteLab, useLightnessOnly) {
       const db = pixelLab.b - item.Lab.b;
       dSq = dL * dL + da * da + db * db;
     }
-    
+
     if (dSq < minDistanceSq) {
       minDistanceSq = dSq;
       closestColor = item.color;
@@ -1519,55 +1519,55 @@ function applyFloydSteinbergDithering(pixels, width, height, paletteLab, ditherW
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      
+
       const oldR = buffer[idx];
-      const oldG = buffer[idx+1];
-      const oldB = buffer[idx+2];
-      
+      const oldG = buffer[idx + 1];
+      const oldB = buffer[idx + 2];
+
       // Match color in high-fidelity CIELAB space
       const closest = findClosestColorLab(oldR, oldG, oldB, paletteLab, useLightnessOnly);
-      
-      pixels[idx]   = closest.r;
-      pixels[idx+1] = closest.g;
-      pixels[idx+2] = closest.b;
-      pixels[idx+3] = 255; // opaque alpha
-      
+
+      pixels[idx] = closest.r;
+      pixels[idx + 1] = closest.g;
+      pixels[idx + 2] = closest.b;
+      pixels[idx + 3] = 255; // opaque alpha
+
       // Calculate channel error scaled by dither intensity
       const errR = (oldR - closest.r) * ditherWeight;
       const errG = (oldG - closest.g) * ditherWeight;
       const errB = (oldB - closest.b) * ditherWeight;
-      
+
       // Diffuse error to neighboring pixels (Floyd-Steinberg Weights)
       // Right (+1, 0): weight 7/16
       if (x + 1 < width) {
         const targetIdx = idx + 4;
-        buffer[targetIdx]   += errR * 7 / 16;
-        buffer[targetIdx+1] += errG * 7 / 16;
-        buffer[targetIdx+2] += errB * 7 / 16;
+        buffer[targetIdx] += errR * 7 / 16;
+        buffer[targetIdx + 1] += errG * 7 / 16;
+        buffer[targetIdx + 2] += errB * 7 / 16;
       }
-      
+
       // Down Left (-1, +1): weight 3/16
       if (x - 1 >= 0 && y + 1 < height) {
         const targetIdx = ((y + 1) * width + (x - 1)) * 4;
-        buffer[targetIdx]   += errR * 3 / 16;
-        buffer[targetIdx+1] += errG * 3 / 16;
-        buffer[targetIdx+2] += errB * 3 / 16;
+        buffer[targetIdx] += errR * 3 / 16;
+        buffer[targetIdx + 1] += errG * 3 / 16;
+        buffer[targetIdx + 2] += errB * 3 / 16;
       }
-      
+
       // Down (0, +1): weight 5/16
       if (y + 1 < height) {
         const targetIdx = ((y + 1) * width + x) * 4;
-        buffer[targetIdx]   += errR * 5 / 16;
-        buffer[targetIdx+1] += errG * 5 / 16;
-        buffer[targetIdx+2] += errB * 5 / 16;
+        buffer[targetIdx] += errR * 5 / 16;
+        buffer[targetIdx + 1] += errG * 5 / 16;
+        buffer[targetIdx + 2] += errB * 5 / 16;
       }
-      
+
       // Down Right (+1, +1): weight 1/16
       if (x + 1 < width && y + 1 < height) {
         const targetIdx = ((y + 1) * width + (x + 1)) * 4;
-        buffer[targetIdx]   += errR * 1 / 16;
-        buffer[targetIdx+1] += errG * 1 / 16;
-        buffer[targetIdx+2] += errB * 1 / 16;
+        buffer[targetIdx] += errR * 1 / 16;
+        buffer[targetIdx + 1] += errG * 1 / 16;
+        buffer[targetIdx + 2] += errB * 1 / 16;
       }
     }
   }
@@ -1585,26 +1585,26 @@ function applyBayerOrderedDithering(pixels, width, height, paletteLab, colorCoun
   for (let y = 0; y < height; y++) {
     const matrixRow = Bayer8x8Matrix[y % 8];
     const rowOffset = y * width;
-    
+
     for (let x = 0; x < width; x++) {
       const idx = (rowOffset + x) * 4;
-      
+
       // Matrix value is 0-63. Normalize to [-0.5, 0.5] bias
       const matrixVal = matrixRow[x % 8];
       const normalizedBias = (matrixVal + 0.5) / 64 - 0.5;
       const ditherAdjustment = normalizedBias * spread * ditherWeight;
-      
+
       // Apply offset to original color
-      const adjustedR = Math.max(0, Math.min(255, pixels[idx]   + ditherAdjustment));
-      const adjustedG = Math.max(0, Math.min(255, pixels[idx+1] + ditherAdjustment));
-      const adjustedB = Math.max(0, Math.min(255, pixels[idx+2] + ditherAdjustment));
-      
+      const adjustedR = Math.max(0, Math.min(255, pixels[idx] + ditherAdjustment));
+      const adjustedG = Math.max(0, Math.min(255, pixels[idx + 1] + ditherAdjustment));
+      const adjustedB = Math.max(0, Math.min(255, pixels[idx + 2] + ditherAdjustment));
+
       const closest = findClosestColorLab(adjustedR, adjustedG, adjustedB, paletteLab, useLightnessOnly);
-      
-      pixels[idx]   = closest.r;
-      pixels[idx+1] = closest.g;
-      pixels[idx+2] = closest.b;
-      pixels[idx+3] = 255;
+
+      pixels[idx] = closest.r;
+      pixels[idx + 1] = closest.g;
+      pixels[idx + 2] = closest.b;
+      pixels[idx + 3] = 255;
     }
   }
 }
@@ -1612,11 +1612,11 @@ function applyBayerOrderedDithering(pixels, width, height, paletteLab, colorCoun
 // Simple nearest color mapping (no dithering) using CIELAB space
 function applyNoneQuantization(pixels, paletteLab, useLightnessOnly) {
   for (let i = 0; i < pixels.length; i += 4) {
-    const closest = findClosestColorLab(pixels[i], pixels[i+1], pixels[i+2], paletteLab, useLightnessOnly);
-    pixels[i]   = closest.r;
-    pixels[i+1] = closest.g;
-    pixels[i+2] = closest.b;
-    pixels[i+3] = 255;
+    const closest = findClosestColorLab(pixels[i], pixels[i + 1], pixels[i + 2], paletteLab, useLightnessOnly);
+    pixels[i] = closest.r;
+    pixels[i + 1] = closest.g;
+    pixels[i + 2] = closest.b;
+    pixels[i + 3] = 255;
   }
 }
 
@@ -1626,25 +1626,25 @@ function downloadResultImage() {
   if (!State.sourceImage) return;
 
   const canvas = DOM.outputCanvas;
-  
+
   // Since output canvas size is low-res (e.g. 320x240), downloading it directly
   // creates a small file. If users open it, it might get blurred.
   // Standard high-quality retro converter practice is to upscale the export sharply!
   // Let's upscale it using nearest-neighbor by 4x or up to ~1280px wide.
   const scaleFactor = Math.max(1, Math.floor(1280 / canvas.width));
-  
+
   const upscaleCanvas = document.createElement("canvas");
   upscaleCanvas.width = canvas.width * scaleFactor;
   upscaleCanvas.height = canvas.height * scaleFactor;
-  
+
   const ctx = upscaleCanvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   ctx.mozImageSmoothingEnabled = false;
   ctx.webkitImageSmoothingEnabled = false;
   ctx.msImageSmoothingEnabled = false;
-  
+
   ctx.drawImage(canvas, 0, 0, upscaleCanvas.width, upscaleCanvas.height);
-  
+
   // Trigger file download
   const link = document.createElement("a");
   link.download = `pic2pc3104_${Date.now()}.png`;
@@ -1653,10 +1653,10 @@ function downloadResultImage() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
+
   // Show preview dialog for iOS long-press saving
   showExportPreview(dataUrl);
-  
+
   updateStatus("画像の保存に成功しました！");
 }
 
@@ -1738,7 +1738,7 @@ function refreshLibraryUI() {
   library.forEach((item, idx) => {
     const li = document.createElement("li");
     li.className = "library-item";
-    
+
     // Select the newly added item or previously selected item
     if (State.adgSelectedId == item.id || (!State.adgSelectedId && idx === library.length - 1)) {
       li.classList.add("selected");
@@ -1781,7 +1781,7 @@ function deleteSelectedFile() {
 
     SoundFX.playBeepAlert();
     refreshLibraryUI();
-    
+
     if (library.length > 0) {
       loadADGBackground();
     } else {
@@ -1841,14 +1841,14 @@ function parseTypewriterText(text) {
 
 function triggerTypewriter() {
   if (State.adgTypewriterTimer) clearTimeout(State.adgTypewriterTimer);
-  
+
   const charName = DOM.adgCharName.value.trim();
   const dialogValue = DOM.adgDialogText.value || "あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はじまっています。";
-  
+
   let fullText = "";
-  if (State.adgLayoutStyle === "detective-command" || State.adgLayoutStyle === "sound-novel" || State.adgLayoutStyle === "gameboy") {
-    // Detective ADV, Sound Novel, and Gameboy style: pre-formatted inline name and brackets
-    // If the dialogue value itself starts with a line containing a tag like [XL] or [L], 
+  if (State.adgLayoutStyle === "detective-command" || State.adgLayoutStyle === "sound-novel") {
+    // Detective ADV and Sound Novel style: pre-formatted inline name and brackets
+    // If the dialogue value itself starts with a line containing a tag like [XL] or [L],
     // prepending name would break line.startsWith("[XL]") on the very first line!
     // To solve this, we parse the lines of dialogValue and prepend the name correctly.
     if (charName) {
@@ -1903,9 +1903,9 @@ function triggerTypewriter() {
     if (State.adgTypewriterIndex < steps.length) {
       const step = steps[State.adgTypewriterIndex];
       State.adgTypewriterIndex++;
-      
+
       let nextDelay = currentDelay;
-      
+
       if (step.type === "char") {
         State.adgDisplayedText += step.value;
         if (step.value !== " " && step.value !== "\n") {
@@ -1923,14 +1923,14 @@ function triggerTypewriter() {
         drawADGComposition();
         nextDelay = 0; // instantly run next step
       }
-      
+
       // Capture frame for GIF
       if (State.adgIsRecordingGif && step.type === "char") {
         State.adgGifFrames.push(DOM.adgPreviewCanvas.toDataURL("image/png"));
         const progress = Math.min(80, Math.round((State.adgTypewriterIndex / steps.length) * 80));
         DOM.adgStatusText.textContent = `GIF録画中 (タイピング): ${progress}%`;
       }
-      
+
       State.adgTypewriterTimer = setTimeout(runStep, nextDelay);
     } else {
       // Typing finished
@@ -1939,12 +1939,12 @@ function triggerTypewriter() {
           State.adgBlinkFramesCount--;
           State.adgTypingComplete = true;
           drawADGComposition();
-          
+
           State.adgGifFrames.push(DOM.adgPreviewCanvas.toDataURL("image/png"));
           const totalBlinkFrames = 60;
           const progress = 80 + Math.round(((totalBlinkFrames - State.adgBlinkFramesCount) / totalBlinkFrames) * 20);
           DOM.adgStatusText.textContent = `GIF録画中 (カーソル点滅): ${progress}%`;
-          
+
           State.adgTypewriterTimer = setTimeout(runStep, 45);
         } else {
           State.adgTypingComplete = true;
@@ -1957,7 +1957,7 @@ function triggerTypewriter() {
       }
     }
   };
-  
+
   State.adgTypewriterTimer = setTimeout(runStep, currentDelay);
 }
 
@@ -1966,7 +1966,7 @@ function drawPixelatedText(ctx, text, x, y, font, color, drawShadow = false) {
   ctx.font = font;
   const metrics = ctx.measureText(text);
   const textWidth = Math.ceil(metrics.width) + 12;
-  
+
   let fontSize = 15;
   const match = font.match(/(\d+)px/);
   if (match) fontSize = parseInt(match[1]);
@@ -1984,9 +1984,9 @@ function drawPixelatedText(ctx, text, x, y, font, color, drawShadow = false) {
 
   if (drawShadow) {
     // SFC Kamaitachi no Yoru style: bold black stroke border around text!
-    // We draw the text offset in 8 directions around it in a grey/white key color first, 
+    // We draw the text offset in 8 directions around it in a grey/white key color first,
     // then draw the center in another key color, so we can convert them to perfectly crisp pixel outlines.
-    
+
     // Draw 8-direction shadow block in color #000001 (stands for shadow pixels)
     tempCtx.fillStyle = "#000001";
     for (let dx = 0; dx <= 2; dx++) {
@@ -2054,7 +2054,7 @@ function drawPixelatedText(ctx, text, x, y, font, color, drawShadow = false) {
   }
 
   tempCtx.putImageData(imgData, 0, 0);
-  
+
   // Align position based on offset
   const renderX = drawShadow ? x - 1 : x;
   const renderY = drawShadow ? y - 1 : y;
@@ -2065,11 +2065,11 @@ function drawPixelatedText(ctx, text, x, y, font, color, drawShadow = false) {
 function drawGameboyImage(ctx, img, dx, dy, dw, dh) {
   // Original aspect ratio of img
   const imgAspect = img.width / img.height;
-  
+
   // Calculate size to fit inside (dw, dh) while preserving aspect ratio
   let targetW = dw;
   let targetH = dh;
-  
+
   if (imgAspect > (dw / dh)) {
     // Image is wider than container
     targetH = dw / imgAspect;
@@ -2077,7 +2077,7 @@ function drawGameboyImage(ctx, img, dx, dy, dw, dh) {
     // Image is taller than container
     targetW = dh * imgAspect;
   }
-  
+
   // Center alignment inside (dx, dy, dw, dh)
   const targetX = dx + (dw - targetW) / 2;
   const targetY = dy + (dh - targetH) / 2;
@@ -2092,24 +2092,24 @@ function drawGameboyImage(ctx, img, dx, dy, dw, dh) {
   tempCanvas.height = tempH;
   const tempCtx = tempCanvas.getContext("2d");
   tempCtx.drawImage(img, 0, 0, tempW, tempH);
-  
+
   const imgData = tempCtx.getImageData(0, 0, tempW, tempH);
   const data = imgData.data;
-  
+
   const gbColors = [
     { r: 15, g: 56, b: 15 },
     { r: 48, g: 98, b: 48 },
     { r: 139, g: 172, b: 15 },
     { r: 155, g: 188, b: 15 }
   ];
-  
+
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
-    const g = data[i+1];
-    const b = data[i+2];
-    
+    const g = data[i + 1];
+    const b = data[i + 2];
+
     const lightness = 0.299 * r + 0.587 * g + 0.114 * b;
-    
+
     let colorIdx = 3;
     if (lightness < 64) {
       colorIdx = 0;
@@ -2118,19 +2118,19 @@ function drawGameboyImage(ctx, img, dx, dy, dw, dh) {
     } else if (lightness < 192) {
       colorIdx = 2;
     }
-    
+
     const color = gbColors[colorIdx];
     data[i] = color.r;
-    data[i+1] = color.g;
-    data[i+2] = color.b;
+    data[i + 1] = color.g;
+    data[i + 2] = color.b;
   }
-  
+
   tempCtx.putImageData(imgData, 0, 0);
-  
+
   // Fill the container background with the darkest green first to act as a matte
   ctx.fillStyle = "#0f380f";
   ctx.fillRect(dx, dy, dw, dh);
-  
+
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(tempCanvas, targetX, targetY, targetW, targetH);
 }
@@ -2147,7 +2147,7 @@ function drawADGComposition() {
 
   if (State.adgLayoutStyle === "detective-command") {
     // --- Layout 2: Classic Detective Command ADV Layout (Portopia / Okhotsk Style) ---
-    
+
     // 1. Draw solid black backdrop
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, 640, 480);
@@ -2170,7 +2170,7 @@ function drawADGComposition() {
     // 3. Draw Command Menu list on the top-right
     const commandsText = DOM.adgCommandsList.value || "ばしょいどう\nはなせ\nしらべろ\nみせろ\nよべ\nスマホつかえ\nもちものみろ";
     const commands = commandsText.split("\n").map(c => c.trim()).filter(c => c.length > 0);
-    
+
     const startMenuX = 370;
     const startMenuY = 28;
     const menuSpacing = 24;
@@ -2231,7 +2231,7 @@ function drawADGComposition() {
         let currentFont = "15px 'DotGothic16', monospace";
         let drawText = line;
         let lineSpacing = 24; // standard spacing for 15px font
-        
+
         if (line.startsWith("[XL]")) {
           currentFont = "bold 24px 'DotGothic16', monospace";
           drawText = line.slice(4);
@@ -2241,7 +2241,7 @@ function drawADGComposition() {
           drawText = line.slice(3);
           lineSpacing = 28;
         }
-        
+
         drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor);
         currentY += lineSpacing;
       }
@@ -2261,7 +2261,7 @@ function drawADGComposition() {
 
   } else if (State.adgLayoutStyle === "sound-novel") {
     // --- Layout 3: Sound Novel Style (Kamaitachi no Yoru / Otogirisou style) ---
-    
+
     // 1. Draw Background
     if (State.adgBackgroundImg) {
       ctx.imageSmoothingEnabled = false;
@@ -2286,7 +2286,7 @@ function drawADGComposition() {
         let currentFont = "22px 'DotGothic16', monospace";
         let drawText = line;
         let lineSpacing = 36; // standard line spacing for 22px
-        
+
         if (line.startsWith("[XL]")) {
           currentFont = "bold 34px 'DotGothic16', monospace";
           drawText = line.slice(4);
@@ -2296,7 +2296,7 @@ function drawADGComposition() {
           drawText = line.slice(3);
           lineSpacing = 44;
         }
-        
+
         drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor, true); // true sets drawShadow/outline on!
         currentY += lineSpacing;
       }
@@ -2316,14 +2316,14 @@ function drawADGComposition() {
 
   } else if (State.adgLayoutStyle === "gameboy") {
     // --- Layout 4: Game Boy Retro DMG-01 Console Style ---
-    
+
     // 1. Draw solid grey plastic Gameboy shell background (#c5c6b6 is the classic DMG grey!)
     ctx.fillStyle = "#c5c6b6";
     ctx.fillRect(0, 0, 640, 480);
 
     // 2. Draw screen dark bezel frame (Bezel dimensions: X=80, Y=15, W=480, H=370, R=15)
     ctx.fillStyle = "#6d7373"; // Screen glass/bezel grey
-    
+
     // Draw rounded bezel
     const drawBezel = (c, x, y, width, height, r) => {
       c.beginPath();
@@ -2373,7 +2373,7 @@ function drawADGComposition() {
     // 6. Draw actual Game Boy Green LCD screen area (Active screen dimensions: X=136, Y=54, W=368, H=294)
     ctx.fillStyle = "#9bbc0f"; // Lightest GB Green
     ctx.fillRect(136, 54, 368, 294);
-    
+
     // Draw LCD screen inner drop shadow border (1px black line)
     ctx.strokeStyle = "#0f380f";
     ctx.lineWidth = 2;
@@ -2391,16 +2391,33 @@ function drawADGComposition() {
     // 8. Draw classic Game Boy style dialogue box at the bottom of the screen (X=144, Y=264, W=352, H=76)
     ctx.fillStyle = "#9bbc0f";
     ctx.fillRect(144, 264, 352, 76);
-    
+
     ctx.strokeStyle = "#0f380f";
     ctx.lineWidth = 3;
     ctx.strokeRect(144, 264, 352, 76);
 
+    // Draw a retro Gameboy-style nameplate box on the top edge of the dialogue box if a name is input
+    const charName = DOM.adgCharName.value.trim();
+    if (charName) {
+      ctx.font = "bold 11px 'DotGothic16', monospace";
+      const nameWidth = Math.ceil(ctx.measureText(charName).width) + 12;
+      
+      // Draw nameplate box
+      ctx.fillStyle = "#9bbc0f";
+      ctx.fillRect(150, 248, nameWidth, 18);
+      ctx.strokeStyle = "#0f380f";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(150, 248, nameWidth, 18);
+      
+      // Draw name text
+      drawPixelatedText(ctx, charName, 156, 251, "bold 11px 'DotGothic16', monospace", "#0f380f");
+    }
+
     // 9. Draw Dialogue text in deepest green (#0f380f)
     const lines = State.adgDisplayedText.split("\n");
-    const lineSpacing = 20;
+    const lineSpacing = 18; // Balanced line spacing for 13px font
     const startX = 154;
-    const startY = 282;
+    const startY = 276; // Shifted up for vertical centering and balance!
 
     lines.forEach((line, idx) => {
       if (idx < 3) { // Gameboy standard: up to 3 lines in text box
@@ -2424,15 +2441,15 @@ function drawADGComposition() {
     ctx.fillStyle = "#9ba3a3";
     ctx.font = "italic bold 14px Arial, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Nintendo", 320, 420);
-    
+    ctx.fillText("Blackdo", 320, 420);
+
     // Draw classic A and B buttons partially visible or text
     ctx.fillStyle = "#a8acac";
-    ctx.fillText("GAME BOY", 320, 442);
+    ctx.fillText("SATO BOY", 320, 442);
 
   } else {
     // --- Layout 1: Classic Full-Screen Slide Layout (PC-3104 Standard) ---
-    
+
     // 1. Draw Background
     if (State.adgBackgroundImg) {
       ctx.imageSmoothingEnabled = false;
@@ -2473,7 +2490,7 @@ function drawADGComposition() {
         let currentFont = "15px 'DotGothic16', monospace";
         let drawText = line;
         let lineSpacing = 24; // standard spacing for 15px font
-        
+
         if (line.startsWith("[XL]")) {
           currentFont = "bold 24px 'DotGothic16', monospace";
           drawText = line.slice(4);
@@ -2641,10 +2658,10 @@ function startADGAnimationLoop() {
       State.adgLoopRunning = false;
       return;
     }
-    
+
     // Constant redraw at 60 FPS for fluid environmental/text typing animations
     drawADGComposition();
-    
+
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
@@ -2804,11 +2821,11 @@ function setupADGMaker() {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const val = textarea.value;
-      
+
       textarea.value = val.substring(0, start) + tag + val.substring(end);
       textarea.selectionStart = textarea.selectionEnd = start + tag.length;
       textarea.focus();
-      
+
       textarea.dispatchEvent(new Event("input"));
       triggerTypewriter();
     });
@@ -2870,7 +2887,7 @@ function setupADGMaker() {
     tab.addEventListener("click", () => {
       SoundFX.playTabClick();
       const tabId = tab.dataset.tab;
-      
+
       adgTabs.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
 
@@ -2888,7 +2905,7 @@ function setupADGMaker() {
     SoundFX.playClick();
     downloadADGImage();
   });
-  
+
   document.getElementById("menu-adg-save").addEventListener("click", () => {
     SoundFX.playClick();
     downloadADGImage();
@@ -2920,19 +2937,19 @@ function downloadADGImage() {
   if (!State.adgBackgroundImg) return;
 
   const canvas = DOM.adgPreviewCanvas;
-  
+
   // Upscale composited ADG window by 2x for sharp full visual novel 1280x960 resolution!
   const upscaleCanvas = document.createElement("canvas");
   upscaleCanvas.width = 1280;
   upscaleCanvas.height = 960;
-  
+
   const ctx = upscaleCanvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   ctx.mozImageSmoothingEnabled = false;
   ctx.webkitImageSmoothingEnabled = false;
-  
+
   ctx.drawImage(canvas, 0, 0, 1280, 960);
-  
+
   const link = document.createElement("a");
   link.download = `pc3104_adg_${Date.now()}.png`;
   const dataUrl = upscaleCanvas.toDataURL("image/png");
@@ -2940,10 +2957,10 @@ function downloadADGImage() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
+
   // Show preview dialog for iOS long-press saving
   showExportPreview(dataUrl);
-  
+
   DOM.adgStatusText.textContent = "アドベンチャー画像の保存に成功しました！";
 }
 
@@ -2963,22 +2980,22 @@ function startADGGifRecording() {
     SoundFX.playBeepAlert();
     return;
   }
-  
+
   SoundFX.playClick();
   State.adgIsRecordingGif = true;
   State.adgGifFrames = [];
   State.adgBlinkFramesCount = 30; // 30 frames = approx 1.35 seconds of finished text pause with blinking cursor (faster, optimized!)
-  
+
   DOM.adgStatusText.textContent = "GIF録画準備中...";
   enableADGButtons(false);
-  
+
   // Trigger typewriter from character 0 for recording!
   triggerTypewriter();
 }
 
 function compileADGGif() {
   DOM.adgStatusText.textContent = "GIFエンコード中 (処理しています...)";
-  
+
   if (typeof gifshot === "undefined") {
     console.error("gifshot is not loaded!");
     DOM.adgStatusText.textContent = "ERROR: gifshotライブラリがロードされていません。";
@@ -2988,7 +3005,7 @@ function compileADGGif() {
     enableADGButtons(true);
     return;
   }
-  
+
   gifshot.createGIF({
     images: State.adgGifFrames,
     gifWidth: 640,
@@ -2997,7 +3014,7 @@ function compileADGGif() {
     numFrames: State.adgGifFrames.length,
     sampleInterval: 20, // Faster color quantization sampling rate for responsive encoding
     numWorkers: 2 // Use Web Workers (via safe blob urls) to process in background, keeping UI responsive!
-  }, function(obj) {
+  }, function (obj) {
     if (!obj.error) {
       const link = document.createElement("a");
       link.download = `pc3104_adg_animation_${Date.now()}.gif`;
@@ -3005,10 +3022,10 @@ function compileADGGif() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // Show preview dialog for iOS long-press saving
       showExportPreview(obj.image);
-      
+
       DOM.adgStatusText.textContent = "GIFアニメの保存に成功しました！";
       SoundFX.playRenderChime();
     } else {
@@ -3016,7 +3033,7 @@ function compileADGGif() {
       DOM.adgStatusText.textContent = "ERROR: GIF生成中にエラーが発生しました。";
       SoundFX.playBeepAlert();
     }
-    
+
     State.adgIsRecordingGif = false;
     State.adgGifFrames = [];
     enableADGButtons(true);
@@ -3129,18 +3146,18 @@ function updateWeatherAudio() {
     }
     SoundFX.init();
     if (!SoundFX.ctx) return;
-    
+
     stopWeatherAudio();
-    
+
     const effect = State.adgWeatherEffect;
     if (effect === "none") return;
-    
+
     State.adgWeatherAudioNodes = [];
-    
+
     // Safely get sampleRate with a solid fallback (essential for iOS Safari)
     const sampleRate = SoundFX.ctx.sampleRate || 44100;
     const bufferSize = sampleRate * 2.0;
-    
+
     if (effect === "rain") {
       // Rain pitter patter: modulated white noise bandpass filter
       const buffer = SoundFX.ctx.createBuffer(1, bufferSize, sampleRate);
@@ -3148,23 +3165,23 @@ function updateWeatherAudio() {
       for (let i = 0; i < bufferSize; i++) {
         data[i] = Math.random() * 2 - 1;
       }
-      
+
       const noise = SoundFX.ctx.createBufferSource();
       noise.buffer = buffer;
       noise.loop = true;
-      
+
       const filter = SoundFX.ctx.createBiquadFilter();
       filter.type = "bandpass";
       filter.frequency.value = 1400; // Rain frequency
       filter.Q.value = 1.0;
-      
+
       const gain = SoundFX.ctx.createGain();
       gain.gain.value = 0.02; // soft hum
-      
+
       noise.connect(filter);
       filter.connect(gain);
       gain.connect(SoundFX.ctx.destination);
-      
+
       noise.start(0);
       State.adgWeatherAudioNodes.push(noise, gain);
     } else if (effect === "blizzard") {
@@ -3174,34 +3191,34 @@ function updateWeatherAudio() {
       for (let i = 0; i < bufferSize; i++) {
         data[i] = Math.random() * 2 - 1;
       }
-      
+
       const noise = SoundFX.ctx.createBufferSource();
       noise.buffer = buffer;
       noise.loop = true;
-      
+
       const filter = SoundFX.ctx.createBiquadFilter();
       filter.type = "bandpass";
       filter.frequency.value = 550;
       filter.Q.value = 2.0;
-      
+
       const gain = SoundFX.ctx.createGain();
       gain.gain.value = 0.035; // wind howling
-      
+
       // Slow sweeping LFO oscillator (modulates wind frequency)
       const osc = SoundFX.ctx.createOscillator();
       osc.type = "sine";
       osc.frequency.value = 0.15; // 0.15Hz slow sweep
-      
+
       const oscGain = SoundFX.ctx.createGain();
       oscGain.gain.value = 300; // +/- 300Hz sweep range
-      
+
       osc.connect(oscGain);
       oscGain.connect(filter.frequency);
-      
+
       noise.connect(filter);
       filter.connect(gain);
       gain.connect(SoundFX.ctx.destination);
-      
+
       noise.start(0);
       osc.start(0);
       State.adgWeatherAudioNodes.push(noise, osc, gain);
@@ -3217,10 +3234,10 @@ function stopWeatherAudio() {
       State.adgWeatherAudioNodes.forEach(node => {
         try {
           node.stop();
-        } catch(e) {}
+        } catch (e) { }
         try {
           node.disconnect();
-        } catch(e) {}
+        } catch (e) { }
       });
       State.adgWeatherAudioNodes = [];
     }
