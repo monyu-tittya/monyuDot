@@ -263,6 +263,252 @@ const SoundFX = {
     osc.stop(this.ctx.currentTime + 0.15);
   },
 
+  playTrashSound() {
+    if (!this.enabled || !this.ctx) return;
+    this.init();
+    
+    // Procedural paper-crumpling sound effect using modulated bandpass noise
+    const now = this.ctx.currentTime;
+    const sampleRate = this.ctx.sampleRate || 44100;
+    const bufferSize = sampleRate * 0.4; // 0.4 seconds
+    const buffer = this.ctx.createBuffer(1, bufferSize, sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(1000, now);
+    filter.frequency.exponentialRampToValueAtTime(100, now + 0.35);
+    
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    noise.start(now);
+    noise.stop(now + 0.4);
+  },
+
+  playDialupSound() {
+    if (!this.enabled || !this.ctx) return null;
+    this.init();
+    
+    const now = this.ctx.currentTime;
+    const activeNodes = [];
+    
+    // Stage 1: Telephone Line Off-hook and Dial Tone (mixed 350Hz + 440Hz)
+    const dialToneOsc1 = this.ctx.createOscillator();
+    const dialToneOsc2 = this.ctx.createOscillator();
+    const dialToneGain = this.ctx.createGain();
+    
+    dialToneOsc1.frequency.setValueAtTime(350, now);
+    dialToneOsc2.frequency.setValueAtTime(440, now);
+    dialToneGain.gain.setValueAtTime(0.04, now);
+    dialToneGain.gain.setValueAtTime(0.04, now + 1.0);
+    dialToneGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.15);
+    
+    dialToneOsc1.connect(dialToneGain);
+    dialToneOsc2.connect(dialToneGain);
+    dialToneGain.connect(this.ctx.destination);
+    
+    dialToneOsc1.start(now);
+    dialToneOsc2.start(now);
+    dialToneOsc1.stop(now + 1.2);
+    dialToneOsc2.stop(now + 1.2);
+    
+    activeNodes.push(dialToneOsc1, dialToneOsc2, dialToneGain);
+    
+    // Stage 2: DTMF Dialing (dialing 03-3104-9800)
+    const dtmfDigits = [
+      { r: 941, c: 1336 }, // 0
+      { r: 697, c: 1477 }, // 3
+      { r: 697, c: 1477 }, // 3
+      { r: 697, c: 1209 }, // 1
+      { r: 941, c: 1336 }, // 0
+      { r: 770, c: 1209 }, // 4
+      { r: 852, c: 1477 }, // 9
+      { r: 852, c: 1336 }, // 8
+      { r: 941, c: 1336 }, // 0
+      { r: 941, c: 1336 }  // 0
+    ];
+    
+    let dialStart = now + 1.3;
+    dtmfDigits.forEach((digit) => {
+      const rowOsc = this.ctx.createOscillator();
+      const colOsc = this.ctx.createOscillator();
+      const dtmfGain = this.ctx.createGain();
+      
+      rowOsc.frequency.setValueAtTime(digit.r, dialStart);
+      colOsc.frequency.setValueAtTime(digit.c, dialStart);
+      
+      dtmfGain.gain.setValueAtTime(0.0, now);
+      dtmfGain.gain.setValueAtTime(0.03, dialStart);
+      dtmfGain.gain.setValueAtTime(0.03, dialStart + 0.1);
+      dtmfGain.gain.exponentialRampToValueAtTime(0.0001, dialStart + 0.12);
+      
+      rowOsc.connect(dtmfGain);
+      colOsc.connect(dtmfGain);
+      dtmfGain.connect(this.ctx.destination);
+      
+      rowOsc.start(dialStart);
+      colOsc.start(dialStart);
+      rowOsc.stop(dialStart + 0.15);
+      colOsc.stop(dialStart + 0.15);
+      
+      activeNodes.push(rowOsc, colOsc, dtmfGain);
+      dialStart += 0.16;
+    });
+    
+    // Stage 3: Telephone Ringback Tone (2 rings, 400Hz + 450Hz)
+    let ringStart = dialStart + 0.2;
+    for (let r = 0; r < 2; r++) {
+      const ringOsc1 = this.ctx.createOscillator();
+      const ringOsc2 = this.ctx.createOscillator();
+      const ringGain = this.ctx.createGain();
+      
+      ringOsc1.frequency.setValueAtTime(400, ringStart);
+      ringOsc2.frequency.setValueAtTime(450, ringStart);
+      
+      ringGain.gain.setValueAtTime(0, now);
+      ringGain.gain.setValueAtTime(0.03, ringStart);
+      ringGain.gain.setValueAtTime(0.03, ringStart + 1.0);
+      ringGain.gain.exponentialRampToValueAtTime(0.0001, ringStart + 1.1);
+      
+      ringOsc1.connect(ringGain);
+      ringOsc2.connect(ringGain);
+      ringGain.connect(this.ctx.destination);
+      
+      ringOsc1.start(ringStart);
+      ringOsc2.start(ringStart);
+      ringOsc1.stop(ringStart + 1.2);
+      ringOsc2.stop(ringStart + 1.2);
+      
+      activeNodes.push(ringOsc1, ringOsc2, ringGain);
+      ringStart += 1.6;
+    }
+    
+    // Stage 4: Modem Connection Handshake Screech
+    const handshakeStart = ringStart - 0.2;
+    const answerOsc = this.ctx.createOscillator();
+    const answerGain = this.ctx.createGain();
+    
+    answerOsc.frequency.setValueAtTime(2100, handshakeStart);
+    answerGain.gain.setValueAtTime(0, now);
+    answerGain.gain.setValueAtTime(0.04, handshakeStart);
+    answerGain.gain.setValueAtTime(0.04, handshakeStart + 0.8);
+    answerGain.gain.exponentialRampToValueAtTime(0.0001, handshakeStart + 0.9);
+    
+    answerOsc.connect(answerGain);
+    answerGain.connect(this.ctx.destination);
+    
+    answerOsc.start(handshakeStart);
+    answerOsc.stop(handshakeStart + 1.0);
+    activeNodes.push(answerOsc, answerGain);
+    
+    // Swirling bandpass filtered white noise for static carrier screeches
+    const screechStart = handshakeStart + 0.9;
+    const sampleRate = this.ctx.sampleRate || 44100;
+    const bufferSize = sampleRate * 5.0; 
+    const buffer = this.ctx.createBuffer(1, bufferSize, sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noiseSource = this.ctx.createBufferSource();
+    noiseSource.buffer = buffer;
+    
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = "bandpass";
+    noiseFilter.frequency.setValueAtTime(1000, screechStart);
+    noiseFilter.Q.setValueAtTime(1.5, screechStart);
+    noiseFilter.frequency.exponentialRampToValueAtTime(3000, screechStart + 2.0);
+    noiseFilter.frequency.linearRampToValueAtTime(600, screechStart + 4.0);
+    
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.setValueAtTime(0.03, screechStart);
+    for (let t = 0; t < 50; t++) {
+      const timeOffset = screechStart + (t / 10.0);
+      const randomAmp = 0.01 + Math.random() * 0.035;
+      noiseGain.gain.setValueAtTime(randomAmp, timeOffset);
+    }
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, screechStart + 5.0);
+    
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.ctx.destination);
+    
+    noiseSource.start(screechStart);
+    noiseSource.stop(screechStart + 5.0);
+    activeNodes.push(noiseSource, noiseFilter, noiseGain);
+    
+    // Low screaming modulated oscillators
+    const oscScreech1 = this.ctx.createOscillator();
+    const oscScreech2 = this.ctx.createOscillator();
+    const gainScreech = this.ctx.createGain();
+    
+    oscScreech1.type = "sawtooth";
+    oscScreech2.type = "triangle";
+    oscScreech1.frequency.setValueAtTime(1200, screechStart);
+    oscScreech2.frequency.setValueAtTime(600, screechStart);
+    oscScreech1.frequency.linearRampToValueAtTime(2200, screechStart + 2.5);
+    oscScreech2.frequency.exponentialRampToValueAtTime(300, screechStart + 3.0);
+    
+    gainScreech.gain.setValueAtTime(0, now);
+    gainScreech.gain.setValueAtTime(0.015, screechStart);
+    gainScreech.gain.setValueAtTime(0.015, screechStart + 3.0);
+    gainScreech.gain.exponentialRampToValueAtTime(0.0001, screechStart + 4.5);
+    
+    oscScreech1.connect(gainScreech);
+    oscScreech2.connect(gainScreech);
+    gainScreech.connect(this.ctx.destination);
+    
+    oscScreech1.start(screechStart);
+    oscScreech2.start(screechStart);
+    oscScreech1.stop(screechStart + 4.8);
+    oscScreech2.stop(screechStart + 4.8);
+    activeNodes.push(oscScreech1, oscScreech2, gainScreech);
+    
+    // Stage 5: Final Clean "CONNECT" Bleep!
+    const connectStart = screechStart + 4.7;
+    const connectOsc = this.ctx.createOscillator();
+    const connectGain = this.ctx.createGain();
+    
+    connectOsc.type = "sine";
+    connectOsc.frequency.setValueAtTime(1500, connectStart);
+    
+    connectGain.gain.setValueAtTime(0, now);
+    connectGain.gain.setValueAtTime(0.03, connectStart);
+    connectGain.gain.exponentialRampToValueAtTime(0.0001, connectStart + 0.4);
+    
+    connectOsc.connect(connectGain);
+    connectGain.connect(this.ctx.destination);
+    
+    connectOsc.start(connectStart);
+    connectOsc.stop(connectStart + 0.5);
+    activeNodes.push(connectOsc, connectGain);
+    
+    return {
+      stop: () => {
+        activeNodes.forEach(node => {
+          try {
+            node.disconnect();
+          } catch(e){}
+        });
+      },
+      duration: 12.8
+    };
+  },
+
   playThunder() {
     if (!this.enabled || !this.ctx) return;
     this.init();
@@ -713,16 +959,296 @@ function bindInteractive(el, handler) {
 }
 
 function setupDesktopShortcuts() {
-  // My Computer & Recycle Bin double beeps when double-clicked, or single clicked
-  const shortcuts = ["icon-mycomputer", "icon-recycle"];
-  shortcuts.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      bindInteractive(el, () => {
-        SoundFX.playBeepAlert();
+  // My Computer opens the system information dialog
+  const iconMyComputer = document.getElementById("icon-mycomputer");
+  const myComputerDialog = document.getElementById("mycomputer-dialog");
+  if (iconMyComputer && myComputerDialog) {
+    bindInteractive(iconMyComputer, () => {
+      SoundFX.playClick();
+      myComputerDialog.classList.remove("hidden");
+    });
+
+    const closeButtons = myComputerDialog.querySelectorAll(".btn-mycomputer-close");
+    closeButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        SoundFX.playClick();
+        myComputerDialog.classList.add("hidden");
+      });
+    });
+
+    // Handle explorer grid selection and dynamic status bar updates
+    const myCompItems = myComputerDialog.querySelectorAll(".mycomp-item");
+    const statusLeft = document.getElementById("mycomp-status-left");
+    const statusRight = document.getElementById("mycomp-status-right");
+
+    const diskInfo = {
+      "floppy": { statusLeft: "1 個のオブジェクトを選択", statusRight: "空き領域: 1.44MB、総容量: 1.44MB" },
+      "hdd-c": { statusLeft: "1 個のオブジェクトを選択", statusRight: "空きディスク領域 4.20GB、総容量 8.40GB" },
+      "drive-d": { statusLeft: "1 個のオブジェクトを選択", statusRight: "空きディスク領域 251MB、総容量 512MB" },
+      "drive-e": { statusLeft: "1 個のオブジェクトを選択", statusRight: "空きディスク領域 820MB、総容量 1.20GB" },
+      "drive-f": { statusLeft: "1 個のオブジェクトを選択", statusRight: "空きディスク領域 0バイト、総容量 650MB" },
+      "drive-z": { statusLeft: "1 個のオブジェクトを選択", statusRight: "ネットワーク空き領域 12.8GB、総容量 20.0GB" },
+      "control": { statusLeft: "1 個のオブジェクトを選択", statusRight: "各種システム設定を行います" },
+      "printers": { statusLeft: "1 個のオブジェクトを選択", statusRight: "プリンタと印刷ジョブの管理を行います" },
+      "dialup": { statusLeft: "1 個のオブジェクトを選択", statusRight: "インターネット接続の構成を行います" }
+    };
+
+    myCompItems.forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        SoundFX.playClick();
+        
+        const id = item.getAttribute("data-id");
+        if (item.classList.contains("selected") && id === "dialup" && dialupConnectDialog) {
+          dialupConnectDialog.classList.remove("hidden");
+        }
+        
+        myCompItems.forEach(i => {
+          i.classList.remove("selected");
+          const lbl = i.querySelector(".mycomp-label");
+          if (lbl) {
+            lbl.style.background = "transparent";
+            lbl.style.color = "var(--win-black)";
+            lbl.style.border = "1px solid transparent";
+          }
+        });
+        item.classList.add("selected");
+        const label = item.querySelector(".mycomp-label");
+        if (label) {
+          label.style.background = "#000080";
+          label.style.color = "#fff";
+          label.style.border = "1px dotted #ff0";
+        }
+        
+        if (diskInfo[id]) {
+          if (statusLeft) statusLeft.textContent = diskInfo[id].statusLeft;
+          if (statusRight) statusRight.textContent = diskInfo[id].statusRight;
+        }
+      });
+      
+      item.addEventListener("dblclick", () => {
+        if (item.getAttribute("data-id") === "dialup" && dialupConnectDialog) {
+          dialupConnectDialog.classList.remove("hidden");
+        }
+      });
+    });
+
+    const explorerView = myComputerDialog.querySelector(".mycomputer-explorer-view");
+    if (explorerView) {
+      explorerView.addEventListener("click", () => {
+        myCompItems.forEach(i => {
+          i.classList.remove("selected");
+          const lbl = i.querySelector(".mycomp-label");
+          if (lbl) {
+            lbl.style.background = "transparent";
+            lbl.style.color = "var(--win-black)";
+            lbl.style.border = "1px solid transparent";
+          }
+        });
+        if (statusLeft) statusLeft.textContent = "9 個のオブジェクト";
+        if (statusRight) statusRight.textContent = "マイ コンピュータ";
       });
     }
-  });
+
+    // Dial-up Connection Dialog setup
+    const dialupConnectDialog = document.getElementById("dialup-connect-dialog");
+    const dialupStatusDialog = document.getElementById("dialup-status-dialog");
+    const btnDialupStart = document.getElementById("btn-dialup-start");
+    const dialupLoadingDots = document.getElementById("dialup-loading-dots");
+    
+    let dialupAudio = null;
+    let dialupTimer = null;
+    let bytesTimer = null;
+    let isConnecting = false;
+    let connectTimeout = null;
+
+    // Close connect dialog
+    if (dialupConnectDialog) {
+      const closeConnectBtns = dialupConnectDialog.querySelectorAll(".btn-dialup-connect-close");
+      closeConnectBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          SoundFX.playClick();
+          resetDialupConnection();
+          dialupConnectDialog.classList.add("hidden");
+        });
+      });
+    }
+
+    function resetDialupConnection() {
+      isConnecting = false;
+      if (dialupAudio) {
+        dialupAudio.stop();
+        dialupAudio = null;
+      }
+      if (connectTimeout) {
+        clearTimeout(connectTimeout);
+        connectTimeout = null;
+      }
+      if (btnDialupStart) {
+        btnDialupStart.disabled = false;
+        btnDialupStart.textContent = "接続(C)";
+      }
+      if (dialupLoadingDots) {
+        dialupLoadingDots.textContent = "";
+      }
+    }
+
+    // Start dialing
+    if (btnDialupStart) {
+      btnDialupStart.addEventListener("click", () => {
+        if (isConnecting) return;
+        isConnecting = true;
+        btnDialupStart.disabled = true;
+        btnDialupStart.textContent = "接続中...";
+        
+        // Start animation wave dots in banner
+        let dots = "";
+        const dotsInterval = setInterval(() => {
+          if (!isConnecting) {
+            clearInterval(dotsInterval);
+            return;
+          }
+          dots = dots.length >= 6 ? "" : dots + ")";
+          if (dialupLoadingDots) dialupLoadingDots.textContent = dots;
+        }, 180);
+
+        // Play the procedural dialing sound!
+        dialupAudio = SoundFX.playDialupSound();
+        
+        const totalDuration = dialupAudio ? (dialupAudio.duration * 1000) : 12000;
+        
+        connectTimeout = setTimeout(() => {
+          clearInterval(dotsInterval);
+          if (!isConnecting) return;
+          
+          // Connect successful!
+          isConnecting = false;
+          if (dialupConnectDialog) dialupConnectDialog.classList.add("hidden");
+          if (dialupStatusDialog) {
+            dialupStatusDialog.classList.remove("hidden");
+            startActiveConnectionCounters();
+          }
+          resetDialupConnection();
+        }, totalDuration);
+      });
+    }
+
+    // Dynamic timer and bytes counter for connected status
+    let secondsElapsed = 0;
+    let bytesReceived = 361;
+    let bytesSent = 432;
+    
+    const timeElapsedEl = document.getElementById("dialup-time-elapsed");
+    const bytesReceivedEl = document.getElementById("dialup-bytes-received");
+    const bytesSentEl = document.getElementById("dialup-bytes-sent");
+
+    function startActiveConnectionCounters() {
+      secondsElapsed = 0;
+      bytesReceived = 361;
+      bytesSent = 432;
+      
+      if (timeElapsedEl) timeElapsedEl.textContent = "000:00:00";
+      if (bytesReceivedEl) bytesReceivedEl.textContent = String(bytesReceived);
+      if (bytesSentEl) bytesSentEl.textContent = String(bytesSent);
+      
+      clearInterval(dialupTimer);
+      clearInterval(bytesTimer);
+      
+      dialupTimer = setInterval(() => {
+        secondsElapsed++;
+        const hours = String(Math.floor(secondsElapsed / 3600)).padStart(3, '0');
+        const mins = String(Math.floor((secondsElapsed % 3600) / 60)).padStart(2, '0');
+        const secs = String(secondsElapsed % 60).padStart(2, '0');
+        if (timeElapsedEl) timeElapsedEl.textContent = `${hours}:${mins}:${secs}`;
+      }, 1000);
+      
+      bytesTimer = setInterval(() => {
+        // Randomly simulate bytes transferring
+        bytesReceived += Math.floor(Math.random() * 45) + 5;
+        bytesSent += Math.floor(Math.random() * 20) + 2;
+        if (bytesReceivedEl) bytesReceivedEl.textContent = String(bytesReceived);
+        if (bytesSentEl) bytesSentEl.textContent = String(bytesSent);
+      }, 1200);
+    }
+
+    // Close status / disconnect buttons
+    if (dialupStatusDialog) {
+      const btnOk = document.getElementById("btn-dialup-ok");
+      const btnDisconnect = document.getElementById("btn-dialup-disconnect");
+      const btnCloseX = dialupStatusDialog.querySelector(".btn-dialup-status-close-class");
+      
+      const disconnectAction = () => {
+        SoundFX.playClick();
+        clearInterval(dialupTimer);
+        clearInterval(bytesTimer);
+        dialupStatusDialog.classList.add("hidden");
+      };
+      
+      if (btnOk) {
+        btnOk.addEventListener("click", () => {
+          SoundFX.playClick();
+          dialupStatusDialog.classList.add("hidden");
+        });
+      }
+      if (btnDisconnect) {
+        btnDisconnect.addEventListener("click", disconnectAction);
+      }
+      if (btnCloseX) {
+        btnCloseX.addEventListener("click", () => {
+          SoundFX.playClick();
+          dialupStatusDialog.classList.add("hidden");
+        });
+      }
+    }
+  }
+
+  // Recycle Bin opens the trash dialog
+  const iconRecycle = document.getElementById("icon-recycle");
+  const recycleDialog = document.getElementById("recycle-dialog");
+  const recycleList = document.getElementById("recycle-list");
+  const btnEmptyRecycle = document.getElementById("btn-empty-recycle");
+  
+  if (iconRecycle && recycleDialog) {
+    bindInteractive(iconRecycle, () => {
+      SoundFX.playClick();
+      recycleDialog.classList.remove("hidden");
+    });
+
+    const closeButtons = recycleDialog.querySelectorAll(".btn-recycle-close");
+    closeButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        SoundFX.playClick();
+        recycleDialog.classList.add("hidden");
+      });
+    });
+
+    if (btnEmptyRecycle && recycleList) {
+      btnEmptyRecycle.addEventListener("click", () => {
+        const confirmWipe = confirm(
+          "【システム警告】\nごみ箱の中身と一緒に、すべての保存データ（仮想ディスクの画像、ウィンドウ状態、セリフ設定など）を完全に消去して初期化します。\n本当に実行してもよろしいですか？"
+        );
+        if (confirmWipe) {
+          // Play the satisfying synthesized crunch sound!
+          SoundFX.playTrashSound();
+          
+          // Animate clearing the list
+          recycleList.innerHTML = "<li style='text-align: center; color: #808080; padding: 24px 0; font-family: sans-serif; font-size: 11px;'>ごみ箱は空です</li>";
+          btnEmptyRecycle.disabled = true;
+          btnEmptyRecycle.textContent = "初期化中...";
+
+          // Wipe localStorage
+          localStorage.clear();
+
+          // After a short delay, reload the page to simulate a clean reboot!
+          setTimeout(() => {
+            location.reload();
+          }, 1200);
+        } else {
+          SoundFX.playClick();
+        }
+      });
+    }
+  }
 
   // App Shortcut opens app window
   bindInteractive(DOM.iconPc98, () => {

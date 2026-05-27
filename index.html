@@ -342,7 +342,9 @@
               <li class="tab active" role="tab" data-tab="tab-adg-image" tabindex="0">背景選択</li>
               <li class="tab" role="tab" data-tab="tab-adg-text" tabindex="0">セリフ編集</li>
             </ul>
-            <button id="btn-adg-play" class="button-retro primary" style="height: 22px; padding: 2px 10px; font-weight: bold; position: relative; top: 1px; cursor: pointer; min-width: auto;">セリフ再生 ▶</button>
+            <button id="btn-adg-play" class="button-retro primary"
+              style="height: 22px; padding: 2px 10px; font-weight: bold; position: relative; top: 1px; cursor: pointer; min-width: auto;">セリフ再生
+              ▶</button>
           </div>
 
           <div class="tab-content inset-bevel">
@@ -563,6 +565,357 @@
         <div class="start-menu-item" id="start-about">
           <span class="menu-icon icon-info"></span>
           バージョン情報...
+        </div>
+      </div>
+    </div>
+
+    <!-- My Computer Modal Dialog -->
+    <div class="window modal hidden" id="mycomputer-dialog"
+      style="max-width: 480px; width: 92%; display: flex; flex-direction: column;">
+      <div class="title-bar">
+        <div class="title-bar-text" style="display: flex; align-items: center; gap: 4px;">
+          <span
+            style="display: inline-block; width: 14px; height: 14px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\'><rect x=\'2\' y=\'2\' width=\'10\' height=\'8\' fill=\'%23c0c0c0\' stroke=\'%23000\'/><rect x=\'3\' y=\'3\' width=\'8\' height=\'5\' fill=\'%2380c0ff\'/><rect x=\'5\' y=\'10\' width=\'4\' height=\'3\' fill=\'%23808080\'/><rect x=\'3\' y=\'12\' width=\'8\' height=\'2\' fill=\'%23c0c0c0\'/><rect x=\'11\' y=\'4\' width=\'3\' height=\'9\' fill=\'%23e0e0e0\'/></svg>');"></span>
+          マイ コンピュータ
+        </div>
+        <div class="title-bar-controls">
+          <button aria-label="Close" class="btn-mycomputer-close"></button>
+        </div>
+      </div>
+
+      <!-- Menu bar -->
+      <div class="window-menu-bar"
+        style="display: flex; gap: 12px; padding: 2px 8px; font-size: 11px; border-bottom: 1px solid #808080; background: var(--win-gray); user-select: none;">
+        <div>ファイル(<span style="text-decoration: underline;">F</span>)</div>
+        <div>編集(<span style="text-decoration: underline;">E</span>)</div>
+        <div>表示(<span style="text-decoration: underline;">V</span>)</div>
+        <div>ヘルプ(<span style="text-decoration: underline;">H</span>)</div>
+      </div>
+
+      <div class="window-body"
+        style="padding: 0; margin: 0; display: flex; flex-direction: column; flex: 1; min-height: 280px; background: #fff;">
+        <!-- Inset Bevel main content area -->
+        <div class="inset-bevel mycomputer-explorer-view"
+          style="flex: 1; background: #fff; overflow-y: auto; padding: 12px; position: relative;">
+          <!-- Drives & tools grid -->
+          <div
+            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 16px 12px; justify-items: center; align-items: start; user-select: none;">
+
+            <!-- 3.5 インチ FD (A:) -->
+            <div class="mycomp-item" data-id="floppy" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect x=\'4\' y=\'4\' width=\'24\' height=\'24\' fill=\'%23a0a0a0\' stroke=\'%23000\' stroke-width=\'1.5\'/><rect x=\'8\' y=\'4\' width=\'16\' height=\'8\' fill=\'%23ffffff\' stroke=\'%23000\' stroke-width=\'1\'/><rect x=\'7\' y=\'16\' width=\'18\' height=\'12\' fill=\'%23505050\' stroke=\'%23000\' stroke-width=\'1\'/><rect x=\'11\' y=\'18\' width=\'10\' height=\'8\' fill=\'%23a0a0a0\'/><rect x=\'20\' y=\'6\' width=\'2\' height=\'4\' fill=\'%23ff0000\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px solid transparent; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                3.5 インチ FD<br>(A:)</div>
+            </div>
+
+            <!-- (C:) -->
+            <div class="mycomp-item selected" data-id="hdd-c" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect x=\'4\' y=\'11\' width=\'24\' height=\'10\' fill=\'%234a4fa8\' stroke=\'%23000\' stroke-width=\'1.5\' rx=\'1\'/><line x1=\'4\' y1=\'16\' x2=\'28\' y2=\'16\' stroke=\'%23303080\' stroke-width=\'1\'/><circle cx=\'24\' cy=\'16\' r=\'1.5\' fill=\'%2300ff00\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px dotted #ff0; background: #000080; color: #fff; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                (C:)</div>
+            </div>
+
+            <!-- (D:) -->
+            <div class="mycomp-item" data-id="drive-d" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect x=\'4\' y=\'11\' width=\'24\' height=\'10\' fill=\'%23a0a0a0\' stroke=\'%23000\' stroke-width=\'1.5\' rx=\'1\'/><line x1=\'4\' y1=\'16\' x2=\'28\' y2=\'16\' stroke=\'%23505050\' stroke-width=\'1\'/><circle cx=\'24\' cy=\'16\' r=\'1.5\' fill=\'%2300ff00\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px solid transparent; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                (D:)</div>
+            </div>
+
+            <!-- Hda5 (E:) -->
+            <div class="mycomp-item" data-id="drive-e" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect x=\'4\' y=\'11\' width=\'24\' height=\'10\' fill=\'%23a0a0a0\' stroke=\'%23000\' stroke-width=\'1.5\' rx=\'1\'/><line x1=\'4\' y1=\'16\' x2=\'28\' y2=\'16\' stroke=\'%23505050\' stroke-width=\'1\'/><circle cx=\'24\' cy=\'16\' r=\'1.5\' fill=\'%2300ff00\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px solid transparent; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                Hda5 (E:)</div>
+            </div>
+
+            <!-- (F:) -->
+            <div class="mycomp-item" data-id="drive-f" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect x=\'4\' y=\'13\' width=\'24\' height=\'8\' fill=\'%23c0c0c0\' stroke=\'%23000\' stroke-width=\'1.5\'/><circle cx=\'16\' cy=\'9\' r=\'8\' fill=\'%23c0c0c0\' stroke=\'%23000\' stroke-width=\'1\'/><ellipse cx=\'16\' cy=\'9\' rx=\'6\' ry=\'6\' fill=\'%2300ffff\' stroke=\'%23303030\'/><circle cx=\'16\' cy=\'9\' r=\'2.5\' fill=\'%23ffffff\' stroke=\'%23000\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px solid transparent; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                (F:)</div>
+            </div>
+
+            <!-- 'Ewsj1' の momma (Z:) -->
+            <div class="mycomp-item" data-id="drive-z" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect x=\'6\' y=\'8\' width=\'20\' height=\'8\' fill=\'%23a0a0a0\' stroke=\'%23000\' stroke-width=\'1.5\'/><line x1=\'16\' y1=\'16\' x2=\'16\' y2=\'22\' stroke=\'%23000\' stroke-width=\'2\'/><line x1=\'8\' y1=\'22\' x2=\'24\' y2=\'22\' stroke=\'%23000\' stroke-width=\'2\'/><rect x=\'4\' y=\'20\' width=\'4\' height=\'4\' fill=\'%23ffffff\' stroke=\'%23000\'/><rect x=\'24\' y=\'20\' width=\'4\' height=\'4\' fill=\'%23ffffff\' stroke=\'%23000\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px solid transparent; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                'Ewsj1' の<br>momma (Z:)</div>
+            </div>
+
+            <!-- コントロール パネル -->
+            <div class="mycomp-item" data-id="control" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><path d=\'M4 6 L12 6 L14 10 L28 10 L28 26 L4 26 Z\' fill=\'%23ffd700\' stroke=\'%23000\' stroke-width=\'1.5\'/><path d=\'M10 14 L22 24 M22 14 L10 24\' stroke=\'%230000ff\' stroke-width=\'2.5\'/><line x1=\'16\' y1=\'12\' x2=\'16\' y2=\'24\' stroke=\'%23ff0000\' stroke-width=\'2.5\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px solid transparent; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                コントロール<br>パネル</div>
+            </div>
+
+            <!-- プリンタ -->
+            <div class="mycomp-item" data-id="printers" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><path d=\'M4 6 L12 6 L14 10 L28 10 L28 26 L4 26 Z\' fill=\'%23ffd700\' stroke=\'%23000\' stroke-width=\'1.5\'/><rect x=\'10\' y=\'16\' width=\'12\' height=\'8\' fill=\'%23c0c0c0\' stroke=\'%23000\' stroke-width=\'1\'/><rect x=\'12\' y=\'12\' width=\'8\' height=\'4\' fill=\'%23ffffff\' stroke=\'%23000\'/><line x1=\'12\' y1=\'20\' x2=\'20\' y2=\'20\' stroke=\'%23000\' stroke-width=\'1\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px solid transparent; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                プリンタ</div>
+            </div>
+
+            <!-- ダイヤルアップ ネットワーク -->
+            <div class="mycomp-item" data-id="dialup" tabindex="0"
+              style="display: flex; flex-direction: column; align-items: center; width: 72px; cursor: pointer; text-align: center; outline: none; margin-bottom: 4px;">
+              <div
+                style="width: 32px; height: 32px; background-size: contain; background-repeat: no-repeat; background-position: center; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect x=\'8\' y=\'6\' width=\'16\' height=\'12\' fill=\'%23e0e0e0\' stroke=\'%23000\' stroke-width=\'1.5\'/><rect x=\'12\' y=\'18\' width=\'8\' height=\'6\' fill=\'%23808080\' stroke=\'%23000\'/><circle cx=\'20\' cy=\'20\' r=\'2\' fill=\'%23ffff00\'/></svg>');">
+              </div>
+              <div class="mycomp-label"
+                style="font-size: 11px; margin-top: 4px; padding: 1px 3px; border: 1px solid transparent; border-radius: 0; word-break: break-all; line-height: 1.2;">
+                ダイヤルアップ<br>ネットワーク</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Window Status Bar at bottom -->
+        <div class="status-bar"
+          style="display: flex; background: var(--win-gray); height: 22px; font-size: 11px; padding: 2px; gap: 2px; user-select: none;">
+          <div class="inset-bevel" id="mycomp-status-left"
+            style="flex: 1.5; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--win-gray); font-size: 11px; display: flex; align-items: center;">
+            1 個のオブジェクトを選択
+          </div>
+          <div class="inset-bevel" id="mycomp-status-right"
+            style="flex: 2; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--win-gray); font-size: 11px; display: flex; align-items: center;">
+            空きディスク領域 4.20GB、総容量 8.40GB
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dial-up Connection Dialog -->
+    <div class="window modal hidden" id="dialup-connect-dialog"
+      style="max-width: 320px; width: 92%; z-index: 2500 !important;">
+      <div class="title-bar">
+        <div class="title-bar-text" style="display: flex; align-items: center; gap: 4px;">
+          <span
+            style="display: inline-block; width: 14px; height: 14px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\'><rect x=\'1\' y=\'2\' width=\'14\' height=\'10\' fill=\'%23fff\' stroke=\'%23000\'/><rect x=\'3\' y=\'4\' width=\'6\' height=\'1\' fill=\'%2300f\'/><rect x=\'3\' y=\'6\' width=\'10\' height=\'1\' fill=\'%2300f\'/></svg>');"></span>
+          ダイヤルアップ接続
+        </div>
+        <div class="title-bar-controls">
+          <button aria-label="Close" class="btn-dialup-connect-close"></button>
+        </div>
+      </div>
+      <div class="window-body" style="padding: 6px; display: flex; flex-direction: column; gap: 8px;">
+
+        <!-- Retro Banner -->
+        <div
+          style="background: #008080; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border: 2px solid; border-top-color: var(--win-dark-gray); border-left-color: var(--win-dark-gray); border-right-color: var(--win-white); border-bottom-color: var(--win-white); box-shadow: inset 1px 1px 0px 0px var(--win-black); overflow: hidden; position: relative;">
+          <!-- Spinning Globe SVG -->
+          <svg width="34" height="34" viewBox="0 0 32 32">
+            <circle cx="16" cy="16" r="14" fill="#002d9c" stroke="#fff" stroke-width="1.5" />
+            <path d="M12 6 C6 12, 10 22, 16 26 C22 26, 26 18, 24 10 C20 6, 16 8, 12 6 Z" fill="#228b22" opacity="0.9" />
+            <ellipse cx="16" cy="16" rx="14" ry="4" fill="none" stroke="#fff" stroke-width="0.8" opacity="0.6" />
+            <ellipse cx="16" cy="16" rx="4" ry="14" fill="none" stroke="#fff" stroke-width="0.8" opacity="0.6" />
+            <line x1="2" y1="16" x2="30" y2="16" stroke="#fff" stroke-width="0.8" opacity="0.6" />
+          </svg>
+
+          <!-- Communication wave line -->
+          <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
+            <div id="dialup-loading-dots"
+              style="color: #ffd700; font-family: monospace; font-size: 16px; font-weight: bold; letter-spacing: 2px;">
+            </div>
+          </div>
+
+          <!-- Phone & PC -->
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <svg width="20" height="20" viewBox="0 0 32 32">
+              <rect x="6" y="10" width="20" height="12" fill="#ffd700" stroke="#000" stroke-width="1.5" />
+              <path d="M8 6 L24 6 L20 10 L12 10 Z" fill="#ffd700" stroke="#000" stroke-width="1.5" />
+            </svg>
+            <svg width="24" height="24" viewBox="0 0 32 32">
+              <rect x="6" y="4" width="20" height="15" fill="#e0e0e0" stroke="#000" stroke-width="1.5" />
+              <rect x="8" y="6" width="16" height="11" fill="#000" />
+              <rect x="12" y="19" width="8" height="5" fill="#808080" stroke="#000" />
+              <rect x="4" y="24" width="24" height="3" fill="#c0c0c0" stroke="#000" />
+            </svg>
+          </div>
+        </div>
+
+        <div style="font-size: 11px; margin-top: 2px;">接続先 : <strong>SATOSHIへの接続</strong></div>
+
+        <!-- Form elements -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div>
+            <label style="font-size: 11px; display: block; margin-bottom: 2px;">ユーザー名(<span
+                style="text-decoration: underline;">U</span>):</label>
+            <input type="text" value="SATOSHI"
+              style="width: 100%; height: 21px; padding: 2px 4px; font-family: var(--font-sys); font-size: 11px; border: 2px solid; border-top-color: var(--win-dark-gray); border-left-color: var(--win-dark-gray); border-right-color: var(--win-white); border-bottom-color: var(--win-white); outline: none; background: #fff; box-shadow: inset 1px 1px 0px 0px var(--win-black);">
+          </div>
+          <div>
+            <label style="font-size: 11px; display: block; margin-bottom: 2px;">パスワード(<span
+                style="text-decoration: underline;">P</span>):</label>
+            <input type="password" value="******"
+              style="width: 100%; height: 21px; padding: 2px 4px; font-family: var(--font-sys); font-size: 11px; border: 2px solid; border-top-color: var(--win-dark-gray); border-left-color: var(--win-dark-gray); border-right-color: var(--win-white); border-bottom-color: var(--win-white); outline: none; background: #fff; box-shadow: inset 1px 1px 0px 0px var(--win-black);">
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+            <label style="font-size: 11px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" checked style="margin: 0; transform: scale(1.1);"> パスワードを保存する(<span
+                style="text-decoration: underline;">S</span>)
+            </label>
+            <label style="font-size: 11px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" style="margin: 0; transform: scale(1.1);"> 自動的に接続する(<span
+                style="text-decoration: underline;">A</span>)
+            </label>
+          </div>
+        </div>
+
+        <!-- Buttons at the bottom -->
+        <div style="display: flex; justify-content: space-between; margin-top: 8px; gap: 6px;">
+          <button class="button-retro" style="font-size: 11px; flex: 1; padding: 3px 0;">設定(<span
+              style="text-decoration: underline;">T</span>)...</button>
+          <button id="btn-dialup-start" class="button-retro"
+            style="font-size: 11px; flex: 1.2; padding: 3px 0; font-weight: bold;">接続(<span
+              style="text-decoration: underline;">C</span>)</button>
+          <button class="button-retro btn-dialup-connect-close"
+            style="font-size: 11px; flex: 1; padding: 3px 0;">オフライン(<span
+              style="text-decoration: underline;">O</span>)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dial-up Connection Status Dialog (hi-ho / connected) -->
+    <div class="window modal hidden" id="dialup-status-dialog"
+      style="max-width: 380px; width: 92%; z-index: 2600 !important;">
+      <div class="title-bar">
+        <div class="title-bar-text" style="display: flex; align-items: center; gap: 4px;">
+          <span
+            style="display: inline-block; width: 14px; height: 14px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\'><rect x=\'1\' y=\'2\' width=\'14\' height=\'10\' fill=\'%23fff\' stroke=\'%23000\'/><rect x=\'3\' y=\'4\' width=\'6\' height=\'1\' fill=\'%2300f\'/><rect x=\'3\' y=\'6\' width=\'10\' height=\'1\' fill=\'%2300f\'/></svg>');"></span>
+          ダイヤルアップ ネットワーク(hi-ho)
+        </div>
+        <div class="title-bar-controls">
+          <button aria-label="Help"
+            style="width: 16px; height: 14px; font-size: 9px; font-weight: bold; background: var(--win-gray); display: flex; align-items: center; justify-content: center; border: 1px solid; border-top-color: #fff; border-left-color: #fff; border-right-color: #808080; border-bottom-color: #808080; cursor: pointer; padding: 0 0 1px 0; margin-right: 2px;">?</button>
+          <button aria-label="Close" id="btn-dialup-status-close" class="btn-dialup-status-close-class"
+            style="width: 16px; height: 14px; font-size: 9px; background: var(--win-gray); border: 1px solid; border-top-color: #fff; border-left-color: #fff; border-right-color: #808080; border-bottom-color: #808080; cursor: pointer; font-family: monospace; line-height: 12px; display: flex; align-items: center; justify-content: center;">✕</button>
+        </div>
+      </div>
+      <div class="window-body" style="padding: 10px; display: flex; gap: 12px;">
+
+        <!-- Left Icon column representing connection status -->
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50px;">
+          <!-- Dual computers connected SVG -->
+          <svg width="42" height="42" viewBox="0 0 42 42">
+            <!-- Top PC -->
+            <rect x="14" y="2" width="14" height="10" fill="#e0e0e0" stroke="#000" stroke-width="1" />
+            <rect x="15" y="3" width="12" height="7" fill="#80c0ff" />
+            <rect x="18" y="12" width="6" height="3" fill="#808080" stroke="#000" />
+            <line x1="12" y1="15" x2="30" y2="15" stroke="#000" stroke-width="1" />
+            <!-- Phone / connection line -->
+            <path d="M12 21 L30 21" stroke="#0000ff" stroke-width="1.5" stroke-dasharray="3,3" />
+            <!-- Bottom PC -->
+            <rect x="14" y="26" width="14" height="10" fill="#e0e0e0" stroke="#000" stroke-width="1" />
+            <rect x="15" y="27" width="12" height="7" fill="#80c0ff" />
+            <rect x="18" y="36" width="6" height="3" fill="#808080" stroke="#000" />
+            <line x1="12" y1="39" x2="30" y2="39" stroke="#000" stroke-width="1" />
+
+            <!-- Small yellow phone receiver in middle -->
+            <rect x="8" y="16" width="6" height="10" fill="#ffd700" rx="1" stroke="#000" stroke-width="0.8" />
+          </svg>
+        </div>
+
+        <!-- Center Information panel -->
+        <div
+          style="flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 11px; justify-content: center; line-height: 1.4;">
+          <div style="font-weight: bold; font-size: 12px; margin-bottom: 4px;">38,400 bps で接続</div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <tr>
+              <td style="padding: 1px 0; color: #333; width: 70px;">接続時間:</td>
+              <td id="dialup-time-elapsed" style="font-weight: bold; font-family: monospace;">000:00:00</td>
+            </tr>
+            <tr>
+              <td style="padding: 1px 0; color: #333;">受信バイト数:</td>
+              <td id="dialup-bytes-received" style="font-weight: bold; font-family: monospace;">361</td>
+            </tr>
+            <tr>
+              <td style="padding: 1px 0; color: #333;">送信バイト数:</td>
+              <td id="dialup-bytes-sent" style="font-weight: bold; font-family: monospace;">432</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Right action buttons column -->
+        <div style="display: flex; flex-direction: column; gap: 6px; width: 85px;">
+          <button id="btn-dialup-ok" class="button-retro"
+            style="font-size: 11px; font-weight: bold; padding: 3px 0;">OK</button>
+          <button id="btn-dialup-disconnect" class="button-retro" style="font-size: 11px; padding: 3px 0;">切断(<span
+              style="text-decoration: underline;">C</span>)</button>
+          <button class="button-retro" style="font-size: 11px; padding: 3px 0;">詳細(<span
+              style="text-decoration: underline;">D</span>) &gt;&gt;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recycle Bin Modal Dialog -->
+    <div class="window modal hidden" id="recycle-dialog" style="max-width: 320px;">
+      <div class="title-bar">
+        <div class="title-bar-text">ごみ箱</div>
+        <div class="title-bar-controls">
+          <button aria-label="Close" class="btn-recycle-close"></button>
+        </div>
+      </div>
+      <div class="window-body">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px;">
+          <p style="font-size: 11px; text-align: center; margin-bottom: 2px;">システム内の不要ファイルやバグが存在します。</p>
+          <div class="inset-bevel" style="background: #fff; padding: 6px; height: 90px; overflow-y: auto;">
+            <ul id="recycle-list"
+              style="list-style: none; padding: 0; margin: 0; font-family: monospace; font-size: 10px;">
+              <li
+                style="padding: 2px 4px; display: flex; justify-content: space-between; color: #555; border-bottom: 1px dashed #ccc;">
+                <span>BUG.LOG</span><span>12 KB</span>
+              </li>
+              <li
+                style="padding: 2px 4px; display: flex; justify-content: space-between; color: #555; border-bottom: 1px dashed #ccc;">
+                <span>CONFIDENTIAL.TXT</span><span>4 KB</span>
+              </li>
+              <li
+                style="padding: 2px 4px; display: flex; justify-content: space-between; color: #555; border-bottom: 1px dashed #ccc;">
+                <span>SATO_BOY_BETA.EXE</span><span>256 KB</span>
+              </li>
+            </ul>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 4px; gap: 8px;">
+            <button id="btn-empty-recycle" class="button-retro" style="font-size: 11px; flex: 1;">ごみ箱を空にする
+              (初期化)</button>
+            <button class="button-retro btn-recycle-close" style="width: 80px;">閉じる</button>
+          </div>
         </div>
       </div>
     </div>
