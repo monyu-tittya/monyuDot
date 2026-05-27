@@ -48,7 +48,8 @@ const State = {
   adgThunderFlashTime: 0,
   adgPagePaused: false,
   adgActiveChoices: null,
-  adgChoicesPaused: false
+  adgChoicesPaused: false,
+  adgCurrentCharName: ""
 };
 
 // --- DOM References ---
@@ -122,7 +123,6 @@ const DOM = {
   libraryListUl: document.getElementById("library-list-ul"),
   btnLibraryRefresh: document.getElementById("btn-library-refresh"),
   btnLibraryDelete: document.getElementById("btn-library-delete"),
-  adgCharName: document.getElementById("adg-char-name"),
   adgDialogText: document.getElementById("adg-dialog-text"),
   adgTextColor: document.getElementById("adg-text-color"),
   adgTypewriter: document.getElementById("adg-typewriter"),

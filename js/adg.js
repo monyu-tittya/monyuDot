@@ -148,6 +148,15 @@ function parseTypewriterText(text) {
           steps.push({ type: "choices", list: choicesList });
           i = closingIdx + 1;
           continue;
+        } else if (tag.startsWith("name=")) {
+          const name = tag.slice(5).trim();
+          steps.push({ type: "name", value: name });
+          i = closingIdx + 1;
+          continue;
+        } else if (tag === "name") {
+          steps.push({ type: "name", value: "" });
+          i = closingIdx + 1;
+          continue;
         }
       }
     }
@@ -165,40 +174,10 @@ function triggerTypewriter() {
   State.adgPagePaused = false;
   State.adgActiveChoices = null;
   State.adgChoicesPaused = false;
+  State.adgCurrentCharName = "";
 
-  const charName = DOM.adgCharName.value.trim();
   const dialogValue = DOM.adgDialogText.value || "あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はジまっています。";
-
-  let fullText = "";
-  if (State.adgLayoutStyle === "detective-command" || State.adgLayoutStyle === "sound-novel") {
-    // Detective ADV and Sound Novel style: pre-formatted inline name and brackets
-    // If the dialogue value itself starts with a line containing a tag like [XL] or [L],
-    // prepending name would break line.startsWith("[XL]") on the very first line!
-    // To solve this, we parse the lines of dialogValue and prepend the name correctly.
-    if (charName) {
-      const dialogLines = dialogValue.split("\n");
-      if (dialogLines.length > 0) {
-        const firstLine = dialogLines[0];
-        if (firstLine.startsWith("[XL]")) {
-          dialogLines[0] = `[XL]${charName}「${firstLine.slice(4)}`; // keep tag at absolute start!
-        } else if (firstLine.startsWith("[L]")) {
-          dialogLines[0] = `[L]${charName}「${firstLine.slice(3)}`;
-        } else {
-          dialogLines[0] = `${charName}「${firstLine}`;
-        }
-        // Append closing bracket to the very end of dialogue
-        dialogLines[dialogLines.length - 1] = dialogLines[dialogLines.length - 1] + "」";
-        fullText = dialogLines.join("\n");
-      } else {
-        fullText = `${charName}「」`;
-      }
-    } else {
-      fullText = dialogValue;
-    }
-  } else {
-    // PC-3104 standard style: separate name plate and pure dialogue text
-    fullText = dialogValue;
-  }
+  const fullText = dialogValue;
 
   // If we are recording a GIF, we always use the typewriter animation!
   const useTypewriter = State.adgIsRecordingGif ? true : DOM.adgTypewriter.checked;
@@ -215,6 +194,8 @@ function triggerTypewriter() {
         cleanText = ""; // Clear text for new page
       } else if (step.type === "choices") {
         lastChoices = step.list;
+      } else if (step.type === "name") {
+        State.adgCurrentCharName = step.value;
       }
     });
     State.adgDisplayedText = cleanText;
@@ -306,6 +287,10 @@ function triggerTypewriter() {
           drawADGComposition();
           return; // pause
         }
+      } else if (step.type === "name") {
+        State.adgCurrentCharName = step.value;
+        runStep(); // immediately move to next step without delay
+        return;
       }
 
       // Capture frame for GIF
@@ -786,7 +771,7 @@ function drawADGComposition() {
     ctx.strokeRect(144, 264, 352, 76);
 
     // Draw a retro Gameboy-style nameplate box on the top edge of the dialogue box if a name is input
-    const charName = DOM.adgCharName.value.trim();
+    const charName = (State.adgCurrentCharName || "").trim();
     if (charName) {
       ctx.font = "bold 11px 'DotGothic16', monospace";
       const nameWidth = Math.ceil(ctx.measureText(charName).width) + 12;
@@ -863,7 +848,7 @@ function drawADGComposition() {
     ctx.strokeRect(18, 342, 604, 120);
 
     // 3. Draw Character Name plate
-    const charName = DOM.adgCharName.value.trim();
+    const charName = (State.adgCurrentCharName || "").trim();
     if (charName) {
       drawPixelatedText(ctx, `【${charName}】`, 32, 350, "bold 15px 'DotGothic16', monospace", "#00ffff"); // Pushed up further to Y=350 to avoid crowding
     }
@@ -1228,15 +1213,6 @@ function setupADGMaker() {
     deleteSelectedFile();
   });
 
-  DOM.adgCharName.addEventListener("input", () => {
-    saveADGSettings();
-    if (!DOM.adgTypewriter.checked) {
-      triggerTypewriter();
-    } else {
-      drawADGComposition();
-    }
-  });
-
   DOM.adgDialogText.addEventListener("input", () => {
     saveADGSettings();
     // If not typewriter, render instantly on type
@@ -1435,7 +1411,6 @@ function enableADGButtons(enable) {
   DOM.btnAdgPlay.disabled = !enable;
   DOM.btnAdgDownload.disabled = !enable;
   DOM.btnAdgGifDownload.disabled = !enable;
-  DOM.adgCharName.disabled = !enable;
   DOM.adgDialogText.disabled = !enable;
   DOM.adgTextColor.disabled = !enable;
   DOM.btnLibraryRefresh.disabled = !enable;
@@ -1510,7 +1485,7 @@ function compileADGGif() {
 // --- Persist ADG Maker inputs to localStorage ---
 function saveADGSettings() {
   const settings = {
-    charName: DOM.adgCharName.value,
+    charName: "",
     dialogText: DOM.adgDialogText.value,
     layoutStyle: State.adgLayoutStyle,
     textColor: DOM.adgTextColor.value,
@@ -1527,7 +1502,6 @@ function loadADGSettings() {
     const raw = localStorage.getItem("pic3104_adg_settings");
     if (!raw) return;
     const settings = JSON.parse(raw);
-    if (settings.charName !== undefined) DOM.adgCharName.value = settings.charName;
     if (settings.dialogText !== undefined) DOM.adgDialogText.value = settings.dialogText;
     if (settings.layoutStyle !== undefined) {
       State.adgLayoutStyle = settings.layoutStyle;
