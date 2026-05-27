@@ -45,7 +45,10 @@ const State = {
   adgWeatherEffect: "none",
   adgBgmPreset: "none",
   adgWeatherAudioNodes: [],
-  adgThunderFlashTime: 0
+  adgThunderFlashTime: 0,
+  adgPagePaused: false,
+  adgActiveChoices: null,
+  adgChoicesPaused: false
 };
 
 // --- DOM References ---

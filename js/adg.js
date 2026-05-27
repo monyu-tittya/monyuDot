@@ -130,6 +130,24 @@ function parseTypewriterText(text) {
           steps.push({ type: "flash" });
           i = closingIdx + 1;
           continue;
+        } else if (tag === "p") {
+          steps.push({ type: "page" });
+          i = closingIdx + 1;
+          continue;
+        } else if (tag.startsWith("choices=")) {
+          const choicesStr = tag.slice(8);
+          const choicesList = choicesStr.split(",").map(c => {
+            let t = c.trim();
+            let act = false;
+            if (t.startsWith("*")) {
+              act = true;
+              t = t.slice(1).trim();
+            }
+            return { text: t, active: act };
+          });
+          steps.push({ type: "choices", list: choicesList });
+          i = closingIdx + 1;
+          continue;
         }
       }
     }
@@ -142,6 +160,11 @@ function parseTypewriterText(text) {
 
 function triggerTypewriter() {
   if (State.adgTypewriterTimer) clearTimeout(State.adgTypewriterTimer);
+
+  // Initialize new state variables on typewriter restart
+  State.adgPagePaused = false;
+  State.adgActiveChoices = null;
+  State.adgChoicesPaused = false;
 
   const charName = DOM.adgCharName.value.trim();
   const dialogValue = DOM.adgDialogText.value || "あっ、センパイ おそいですよ。&#13;&#10;かくしょへ れんらくは しておきました。&#13;&#10;げんばけんしょうも はジまっています。";
@@ -181,13 +204,21 @@ function triggerTypewriter() {
   const useTypewriter = State.adgIsRecordingGif ? true : DOM.adgTypewriter.checked;
 
   if (!useTypewriter) {
-    // Strip tags for instant drawing
+    // Strip tags and collect last choices/page states
     let cleanText = "";
+    let lastChoices = null;
     const parsed = parseTypewriterText(fullText);
     parsed.forEach(step => {
-      if (step.type === "char") cleanText += step.value;
+      if (step.type === "char") {
+        cleanText += step.value;
+      } else if (step.type === "page") {
+        cleanText = ""; // Clear text for new page
+      } else if (step.type === "choices") {
+        lastChoices = step.list;
+      }
     });
     State.adgDisplayedText = cleanText;
+    State.adgActiveChoices = lastChoices;
     State.adgTypingComplete = true;
     drawADGComposition();
     return;
@@ -223,6 +254,58 @@ function triggerTypewriter() {
         State.adgThunderFlashTime = Date.now();
         drawADGComposition();
         nextDelay = 0; // instantly run next step
+      } else if (step.type === "page") {
+        if (State.adgIsRecordingGif) {
+          // Pause and record frames in GIF
+          let pageFrameCount = 20;
+          const pushPageFrame = () => {
+            if (pageFrameCount > 0) {
+              pageFrameCount--;
+              drawADGComposition();
+              State.adgGifFrames.push(DOM.adgPreviewCanvas.toDataURL("image/png"));
+              DOM.adgStatusText.textContent = `GIF録画中 (改ページ一時停止): ${Math.round((20 - pageFrameCount) / 20 * 100)}%`;
+              setTimeout(pushPageFrame, 45);
+            } else {
+              State.adgDisplayedText = "";
+              runStep(); // resume
+            }
+          };
+          pushPageFrame();
+          return;
+        } else {
+          State.adgPagePaused = true;
+          SoundFX.playPageAdvance();
+          drawADGComposition();
+          return; // pause
+        }
+      } else if (step.type === "choices") {
+        if (State.adgIsRecordingGif) {
+          State.adgActiveChoices = step.list;
+          State.adgChoicesPaused = true;
+          SoundFX.playMenuSelect();
+          let choiceFrameCount = 35;
+          const pushChoiceFrame = () => {
+            if (choiceFrameCount > 0) {
+              choiceFrameCount--;
+              drawADGComposition();
+              State.adgGifFrames.push(DOM.adgPreviewCanvas.toDataURL("image/png"));
+              DOM.adgStatusText.textContent = `GIF録画中 (選択肢表示): ${Math.round((35 - choiceFrameCount) / 35 * 100)}%`;
+              setTimeout(pushChoiceFrame, 45);
+            } else {
+              State.adgActiveChoices = null;
+              State.adgChoicesPaused = false;
+              runStep(); // resume
+            }
+          };
+          pushChoiceFrame();
+          return;
+        } else {
+          State.adgActiveChoices = step.list;
+          State.adgChoicesPaused = true;
+          SoundFX.playMenuSelect();
+          drawADGComposition();
+          return; // pause
+        }
       }
 
       // Capture frame for GIF
@@ -257,6 +340,11 @@ function triggerTypewriter() {
         drawADGComposition();
       }
     }
+  };
+
+  // Expose closure runStep so event handlers can resume playback asynchronously
+  State.adgResumeTypewriter = () => {
+    runStep();
   };
 
   State.adgTypewriterTimer = setTimeout(runStep, currentDelay);
@@ -549,7 +637,7 @@ function drawADGComposition() {
     });
 
     // 6. Draw Flashing cursor triangle ▼ at the bottom-right corner of bottom box
-    if (State.adgTypingComplete) {
+    if (State.adgTypingComplete || State.adgPagePaused) {
       if (Math.floor(Date.now() / 300) % 2 === 0) {
         ctx.fillStyle = textColor;
         ctx.beginPath();
@@ -604,7 +692,7 @@ function drawADGComposition() {
     });
 
     // 4. Draw Flashing cursor triangle ▼ when typing is completed (bottom right)
-    if (State.adgTypingComplete) {
+    if (State.adgTypingComplete || State.adgPagePaused) {
       if (Math.floor(Date.now() / 300) % 2 === 0) {
         ctx.fillStyle = textColor;
         ctx.beginPath();
@@ -727,7 +815,7 @@ function drawADGComposition() {
     });
 
     // 10. Draw Flashing cursor triangle ▼ when typing is completed (bottom-right of dialogue box)
-    if (State.adgTypingComplete) {
+    if (State.adgTypingComplete || State.adgPagePaused) {
       if (Math.floor(Date.now() / 300) % 2 === 0) {
         ctx.fillStyle = "#0f380f";
         ctx.beginPath();
@@ -807,7 +895,7 @@ function drawADGComposition() {
     });
 
     // 5. Draw Flashing cursor triangle ▼ when typing is completed
-    if (State.adgTypingComplete) {
+    if (State.adgTypingComplete || State.adgPagePaused) {
       if (Math.floor(Date.now() / 300) % 2 === 0) {
         ctx.fillStyle = textColor;
         ctx.beginPath();
@@ -946,6 +1034,51 @@ function drawADGComposition() {
     } else {
       State.adgThunderFlashTime = 0; // reset
     }
+  }
+
+  // --- Retro Choices Overlay Box (Rendered on top of all visuals) ---
+  if (State.adgActiveChoices && State.adgActiveChoices.length > 0) {
+    const choices = State.adgActiveChoices;
+    const boxW = 360;
+    const boxH = (choices.length * 28) + 24;
+    const boxX = 320 - boxW / 2;
+    const boxY = 240 - boxH / 2;
+
+    // Draw solid retro dark navy background
+    ctx.fillStyle = "rgba(0, 0, 70, 0.94)";
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+
+    // Draw Outer double border
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+    // Draw Inner border
+    ctx.lineWidth = 1;
+    ctx.strokeRect(boxX + 4, boxY + 4, boxW - 8, boxH - 8);
+
+    // Draw items
+    choices.forEach((choice, idx) => {
+      const itemY = boxY + 16 + idx * 28;
+      if (choice.active) {
+        // Draw selection cursor triangle "▷" (PC-98 style!)
+        ctx.strokeStyle = "#ffff00";
+        ctx.lineWidth = 2;
+        ctx.lineJoin = "miter";
+        ctx.beginPath();
+        ctx.moveTo(boxX + 16, itemY + 2);
+        ctx.lineTo(boxX + 25, itemY + 8);
+        ctx.lineTo(boxX + 16, itemY + 14);
+        ctx.closePath();
+        ctx.stroke();
+
+        // High-contrast yellow text
+        drawPixelatedText(ctx, choice.text, boxX + 34, itemY, "15px 'DotGothic16', monospace", "#ffff00");
+      } else {
+        // Standard white text
+        drawPixelatedText(ctx, choice.text, boxX + 34, itemY, "15px 'DotGothic16', monospace", "#ffffff");
+      }
+    });
   }
 }
 
@@ -1182,9 +1315,35 @@ function setupADGMaker() {
     drawADGComposition();
   });
 
+  const handleADGAdvance = () => {
+    if (State.adgPagePaused) {
+      SoundFX.playPageAdvance();
+      State.adgPagePaused = false;
+      State.adgDisplayedText = "";
+      if (typeof State.adgResumeTypewriter === "function") {
+        State.adgResumeTypewriter();
+      }
+    } else if (State.adgChoicesPaused) {
+      SoundFX.playPageAdvance();
+      State.adgActiveChoices = null;
+      State.adgChoicesPaused = false;
+      if (typeof State.adgResumeTypewriter === "function") {
+        State.adgResumeTypewriter();
+      }
+    }
+  };
+
+  DOM.adgPreviewCanvas.addEventListener("click", () => {
+    handleADGAdvance();
+  });
+
   DOM.btnAdgPlay.addEventListener("click", () => {
-    SoundFX.playClick();
-    triggerTypewriter();
+    if (State.adgPagePaused || State.adgChoicesPaused) {
+      handleADGAdvance();
+    } else {
+      SoundFX.playClick();
+      triggerTypewriter();
+    }
   });
 
   // ADG Synthesizer trigger on tab clicks
