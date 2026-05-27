@@ -337,10 +337,13 @@
 
         <!-- Controls / Inputs -->
         <div class="control-section">
-          <ul class="tabs" role="tablist">
-            <li class="tab active" role="tab" data-tab="tab-adg-image" tabindex="0">背景選択</li>
-            <li class="tab" role="tab" data-tab="tab-adg-text" tabindex="0">セリフ編集</li>
-          </ul>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-right: 4px;">
+            <ul class="tabs" role="tablist" style="margin-bottom: 0;">
+              <li class="tab active" role="tab" data-tab="tab-adg-image" tabindex="0">背景選択</li>
+              <li class="tab" role="tab" data-tab="tab-adg-text" tabindex="0">セリフ編集</li>
+            </ul>
+            <button id="btn-adg-play" class="button-retro primary" style="height: 22px; padding: 2px 10px; font-weight: bold; position: relative; top: 1px; cursor: pointer; min-width: auto;">セリフ再生 ▶</button>
+          </div>
 
           <div class="tab-content inset-bevel">
 
@@ -470,7 +473,6 @@
                     <input type="checkbox" id="adg-typewriter" checked>
                     <span>カタカタ再生演出</span>
                   </label>
-                  <button id="btn-adg-play" class="button-retro" style="margin-left: auto;">セリフ再生</button>
                 </div>
               </div>
             </div>
