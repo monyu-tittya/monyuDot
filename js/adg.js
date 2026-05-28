@@ -236,7 +236,11 @@ function triggerTypewriter() {
         drawADGComposition();
         nextDelay = 0; // instantly run next step
       } else if (step.type === "page") {
-        if (State.adgIsRecordingGif) {
+        if (State.adgSkipNextPageBreak) {
+          State.adgSkipNextPageBreak = false; // reset the skip flag
+          State.adgDisplayedText = ""; // clear text on choice-to-page break
+          nextDelay = 0; // instantly run next step
+        } else if (State.adgIsRecordingGif) {
           // Pause and record frames in GIF
           let pageFrameCount = 20;
           const pushPageFrame = () => {
@@ -275,6 +279,8 @@ function triggerTypewriter() {
             } else {
               State.adgActiveChoices = null;
               State.adgChoicesPaused = false;
+              State.adgDisplayedText = ""; // clear text on choices end
+              State.adgSkipNextPageBreak = true; // skip subsequent [p]
               runStep(); // resume
             }
           };
@@ -1367,6 +1373,8 @@ function setupADGMaker() {
       SoundFX.playPageAdvance();
       State.adgActiveChoices = null;
       State.adgChoicesPaused = false;
+      State.adgDisplayedText = ""; // clear text on choices selection
+      State.adgSkipNextPageBreak = true; // skip subsequent [p] tag
       if (typeof State.adgResumeTypewriter === "function") {
         State.adgResumeTypewriter();
       }

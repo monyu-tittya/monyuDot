@@ -49,7 +49,8 @@ const State = {
   adgPagePaused: false,
   adgActiveChoices: null,
   adgChoicesPaused: false,
-  adgCurrentCharName: ""
+  adgCurrentCharName: "",
+  adgSkipNextPageBreak: false
 };
 
 // --- DOM References ---
