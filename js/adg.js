@@ -595,31 +595,51 @@ function drawADGComposition() {
     ctx.stroke();
 
     // 5. Draw Dialogue inside bottom box (X=40, Y=302)
-    const lines = State.adgDisplayedText.split("\n");
-    const startX = 40;
-    const startY = 302; // 284 + 18 offset
-    let currentY = startY;
-
-    lines.forEach((line, idx) => {
-      if (idx < 5) { // Draw up to 5 lines inside rounded rect
-        let currentFont = "15px 'DotGothic16', monospace";
-        let drawText = line;
-        let lineSpacing = 24; // standard spacing for 15px font
-
-        if (line.startsWith("[XL]")) {
-          currentFont = "bold 24px 'DotGothic16', monospace";
-          drawText = line.slice(4);
-          lineSpacing = 32; // larger spacing to prevent overlap
-        } else if (line.startsWith("[L]")) {
-          currentFont = "bold 19px 'DotGothic16', monospace";
-          drawText = line.slice(3);
-          lineSpacing = 28;
+    if (State.adgActiveChoices && State.adgActiveChoices.length > 0) {
+      // Render choices natively inside the dialogue box instead of normal text
+      const choices = State.adgActiveChoices;
+      const startX = 64; // Indent slightly for cursors
+      const startY = 310;
+      const lineSpacing = 28;
+      choices.forEach((choice, idx) => {
+        if (idx < 5) {
+          const itemY = startY + idx * lineSpacing;
+          if (choice.active) {
+            // Draw yellow "▷" cursor
+            drawPixelatedText(ctx, "▷", startX - 20, itemY, "15px 'DotGothic16', monospace", "#ffff00");
+            drawPixelatedText(ctx, choice.text, startX, itemY, "15px 'DotGothic16', monospace", "#ffff00");
+          } else {
+            drawPixelatedText(ctx, choice.text, startX, itemY, "15px 'DotGothic16', monospace", "#ffffff");
+          }
         }
+      });
+    } else {
+      const lines = State.adgDisplayedText.split("\n");
+      const startX = 40;
+      const startY = 302; // 284 + 18 offset
+      let currentY = startY;
 
-        drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor);
-        currentY += lineSpacing;
-      }
-    });
+      lines.forEach((line, idx) => {
+        if (idx < 5) { // Draw up to 5 lines inside rounded rect
+          let currentFont = "15px 'DotGothic16', monospace";
+          let drawText = line;
+          let lineSpacing = 24; // standard spacing for 15px font
+
+          if (line.startsWith("[XL]")) {
+            currentFont = "bold 24px 'DotGothic16', monospace";
+            drawText = line.slice(4);
+            lineSpacing = 32; // larger spacing to prevent overlap
+          } else if (line.startsWith("[L]")) {
+            currentFont = "bold 19px 'DotGothic16', monospace";
+            drawText = line.slice(3);
+            lineSpacing = 28;
+          }
+
+          drawPixelatedText(ctx, drawText, startX, currentY, currentFont, textColor);
+          currentY += lineSpacing;
+        }
+      });
+    }
 
     // 6. Draw Flashing cursor triangle ▼ at the bottom-right corner of bottom box
     if (State.adgTypingComplete || State.adgPagePaused) {
@@ -675,6 +695,30 @@ function drawADGComposition() {
         currentY += lineSpacing;
       }
     });
+
+    // Draw choices natively inline directly underneath the dialogue text block
+    if (State.adgActiveChoices && State.adgActiveChoices.length > 0) {
+      const choices = State.adgActiveChoices;
+      const choiceStartX = startX + 24; // Indent slightly for cursors
+      let choiceStartY = currentY + 24; // 24px vertical gap after the last dialogue line
+
+      // Avoid overflowing the bottom screen edge (cap Y position if dialogue is very long)
+      if (choiceStartY > 380) {
+        choiceStartY = 320;
+      }
+
+      choices.forEach((choice, idx) => {
+        const itemY = choiceStartY + idx * 36;
+        if (choice.active) {
+          // Yellow highlighted text with shadow/outline and "▷" pointer
+          drawPixelatedText(ctx, "▷", choiceStartX - 24, itemY, "22px 'DotGothic16', monospace", "#ffff00", true);
+          drawPixelatedText(ctx, choice.text, choiceStartX, itemY, "22px 'DotGothic16', monospace", "#ffff00", true);
+        } else {
+          // Standard white outlines
+          drawPixelatedText(ctx, choice.text, choiceStartX, itemY, "22px 'DotGothic16', monospace", "#ffffff", true);
+        }
+      });
+    }
 
     // 4. Draw Flashing cursor triangle ▼ when typing is completed (bottom right)
     if (State.adgTypingComplete || State.adgPagePaused) {
@@ -788,16 +832,36 @@ function drawADGComposition() {
     }
 
     // 9. Draw Dialogue text in deepest green (#0f380f)
-    const lines = State.adgDisplayedText.split("\n");
-    const lineSpacing = 18; // Balanced line spacing for 13px font
-    const startX = 154;
-    const startY = 276; // Shifted up for vertical centering and balance!
+    if (State.adgActiveChoices && State.adgActiveChoices.length > 0) {
+      // Render choices natively inside Game Boy dialogue box instead of standard text
+      const choices = State.adgActiveChoices;
+      const choiceStartX = startX + 16;
+      const choiceStartY = 276;
+      const choiceLineSpacing = 18;
+      choices.forEach((choice, idx) => {
+        if (idx < 3) { // Gameboy fits up to 3 lines
+          const itemY = choiceStartY + idx * choiceLineSpacing;
+          if (choice.active) {
+            // Draw deep-green "▷" cursor
+            drawPixelatedText(ctx, "▷", choiceStartX - 14, itemY, "13px 'DotGothic16', monospace", "#0f380f");
+            drawPixelatedText(ctx, choice.text, choiceStartX, itemY, "13px 'DotGothic16', monospace", "#0f380f");
+          } else {
+            drawPixelatedText(ctx, choice.text, choiceStartX, itemY, "13px 'DotGothic16', monospace", "#0f380f");
+          }
+        }
+      });
+    } else {
+      const lines = State.adgDisplayedText.split("\n");
+      const lineSpacing = 18; // Balanced line spacing for 13px font
+      const startX = 154;
+      const startY = 276; // Shifted up for vertical centering and balance!
 
-    lines.forEach((line, idx) => {
-      if (idx < 3) { // Gameboy standard: up to 3 lines in text box
-        drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "13px 'DotGothic16', monospace", "#0f380f");
-      }
-    });
+      lines.forEach((line, idx) => {
+        if (idx < 3) { // Gameboy standard: up to 3 lines in text box
+          drawPixelatedText(ctx, line, startX, startY + (idx * lineSpacing), "13px 'DotGothic16', monospace", "#0f380f");
+        }
+      });
+    }
 
     // 10. Draw Flashing cursor triangle ▼ when typing is completed (bottom-right of dialogue box)
     if (State.adgTypingComplete || State.adgPagePaused) {
@@ -1021,8 +1085,8 @@ function drawADGComposition() {
     }
   }
 
-  // --- Retro Choices Overlay Box (Rendered on top of all visuals) ---
-  if (State.adgActiveChoices && State.adgActiveChoices.length > 0) {
+  // --- Retro Choices Overlay Box (Rendered on top of all visuals - still-full layout only) ---
+  if (State.adgActiveChoices && State.adgActiveChoices.length > 0 && State.adgLayoutStyle === "still-full") {
     const choices = State.adgActiveChoices;
     const boxW = 360;
     const boxH = (choices.length * 28) + 24;
