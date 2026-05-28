@@ -50,7 +50,8 @@ const State = {
   adgActiveChoices: null,
   adgChoicesPaused: false,
   adgCurrentCharName: "",
-  adgSkipNextPageBreak: false
+  adgSkipNextPageBreak: false,
+  adgIsRecordingMp4: false
 };
 
 // --- DOM References ---
@@ -130,6 +131,7 @@ const DOM = {
   btnAdgPlay: document.getElementById("btn-adg-play"),
   btnAdgDownload: document.getElementById("btn-adg-download"),
   btnAdgGifDownload: document.getElementById("btn-adg-gif-download"),
+  btnAdgMp4Download: document.getElementById("btn-adg-mp4-download"),
   menuAdgSaveGif: document.getElementById("menu-adg-save-gif"),
   adgStatusText: document.getElementById("adg-status-text"),
   adgStatusDisk: document.getElementById("adg-status-disk"),

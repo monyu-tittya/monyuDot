@@ -494,14 +494,18 @@
           </div>
 
           <!-- Quick Action Buttons -->
-          <div class="action-buttons-row">
-            <button id="btn-adg-download" class="button-retro primary" disabled>
+          <div class="action-buttons-row" style="display: flex; gap: 4px; flex-wrap: wrap;">
+            <button id="btn-adg-download" class="button-retro primary" style="flex: 1; min-width: 80px;" disabled>
               <span class="icon-floppy"></span>
               PNG保存
             </button>
-            <button id="btn-adg-gif-download" class="button-retro" disabled>
+            <button id="btn-adg-gif-download" class="button-retro" style="flex: 1; min-width: 90px;" disabled>
               <span class="icon-disk-drive"></span>
-              GIFアニメ保存
+              GIF保存
+            </button>
+            <button id="btn-adg-mp4-download" class="button-retro" style="flex: 1; min-width: 90px;" disabled>
+              <span class="icon-disk-drive"></span>
+              MP4保存
             </button>
           </div>
         </div>

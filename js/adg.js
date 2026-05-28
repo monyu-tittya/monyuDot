@@ -329,6 +329,16 @@ function triggerTypewriter() {
       } else {
         State.adgTypingComplete = true;
         drawADGComposition();
+
+        // MP4 recording completion hook
+        if (State.adgIsRecordingMp4) {
+          State.adgIsRecordingMp4 = false;
+          setTimeout(() => {
+            if (State.adgMediaRecorder && State.adgMediaRecorder.state !== "inactive") {
+              State.adgMediaRecorder.stop();
+            }
+          }, 1500); // 1.5 second outro wait
+        }
       }
     }
   };
@@ -1435,6 +1445,10 @@ function setupADGMaker() {
     startADGGifRecording();
   });
 
+  DOM.btnAdgMp4Download.addEventListener("click", () => {
+    startADGMp4Recording();
+  });
+
   // Load persisted settings on startup!
   loadADGSettings();
 
@@ -1483,10 +1497,97 @@ function enableADGButtons(enable) {
   DOM.btnAdgPlay.disabled = !enable;
   DOM.btnAdgDownload.disabled = !enable;
   DOM.btnAdgGifDownload.disabled = !enable;
+  DOM.btnAdgMp4Download.disabled = !enable;
   DOM.adgDialogText.disabled = !enable;
   DOM.adgTextColor.disabled = !enable;
   DOM.btnLibraryRefresh.disabled = !enable;
   DOM.btnLibraryDelete.disabled = !enable;
+}
+
+function startADGMp4Recording() {
+  if (!State.adgBackgroundImg) {
+    SoundFX.playBeepAlert();
+    return;
+  }
+
+  SoundFX.init();
+  if (!SoundFX.ctx) {
+    DOM.adgStatusText.textContent = "ERROR: Web Audio API が非対応です。";
+    return;
+  }
+
+  SoundFX.playClick();
+
+  // Set recording destination in SoundFX (enable AudioNode connect mirroring)
+  const audioDest = SoundFX.ctx.createMediaStreamDestination();
+  SoundFX.recordingDestination = audioDest;
+
+  // Capture canvas stream at 30 FPS
+  const canvasStream = DOM.adgPreviewCanvas.captureStream(30);
+
+  // Combine video and audio tracks into a single MediaStream
+  const combinedStream = new MediaStream();
+  canvasStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));
+  audioDest.stream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+
+  // Determine standard mimetype and file extension
+  let mimeType = "video/webm;codecs=vp9,opus";
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
+  if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1,mp4a")) {
+    mimeType = "video/mp4;codecs=avc1,mp4a";
+  } else if (MediaRecorder.isTypeSupported("video/mp4")) {
+    mimeType = "video/mp4";
+  }
+
+  const chunks = [];
+  let recorder;
+  try {
+    recorder = new MediaRecorder(combinedStream, { mimeType });
+  } catch (e) {
+    console.error("Failed to create MediaRecorder with mimetype, falling back to default.", e);
+    recorder = new MediaRecorder(combinedStream);
+    mimeType = recorder.mimeType || "video/webm";
+  }
+
+  State.adgMediaRecorder = recorder;
+  State.adgIsRecordingMp4 = true;
+
+  recorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) {
+      chunks.push(e.data);
+    }
+  };
+
+  recorder.onstop = () => {
+    // Disable audio mirroring
+    SoundFX.recordingDestination = null;
+
+    const blob = new Blob(chunks, { type: mimeType });
+    const isMp4 = mimeType.includes("mp4");
+    const ext = isMp4 ? "mp4" : "webm";
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `retro_adv_video.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    enableADGButtons(true);
+    DOM.adgStatusText.textContent = "MP4動画の保存に成功しました！";
+    SoundFX.playRenderChime();
+  };
+
+  // Lock UI and start recording
+  enableADGButtons(false);
+  DOM.adgStatusText.textContent = "MP4動画を録画中 (セリフ再生中)...";
+  
+  recorder.start();
+
+  // Run the typewriter animation naturally in real-time
+  triggerTypewriter();
 }
 
 function startADGGifRecording() {

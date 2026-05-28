@@ -6,11 +6,35 @@
 const SoundFX = {
   ctx: null,
   enabled: true,
+  recordingDestination: null,
+  _intercepted: false,
 
   init() {
     if (this.ctx) return;
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Monkey-patch AudioNode.connect to mirror sounds into recordingDestination
+      if (this.ctx && !this._intercepted) {
+        this._intercepted = true;
+        const originalConnect = AudioNode.prototype.connect;
+        const self = this;
+        AudioNode.prototype.connect = function(destination, output, input) {
+          if (destination === self.ctx.destination) {
+            originalConnect.call(this, self.ctx.destination, output, input);
+            if (self.recordingDestination) {
+              try {
+                originalConnect.call(this, self.recordingDestination, output, input);
+              } catch (e) {
+                console.warn("Failed to mirror audio node connection to recordingDestination:", e);
+              }
+            }
+          } else {
+            originalConnect.call(this, destination, output, input);
+          }
+          return destination;
+        };
+      }
     } catch (e) {
       console.warn("Web Audio API not supported", e);
     }
